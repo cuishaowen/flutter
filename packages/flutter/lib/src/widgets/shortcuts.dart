@@ -4,7 +4,6 @@
 
 import 'dart:collection';
 
-import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -36,9 +35,9 @@ class KeySet<T extends KeyboardKey> {
   /// not be appear more than once in the set.
   KeySet(
     T key1, [
-    T key2,
-    T key3,
-    T key4,
+    T? key2,
+    T? key3,
+    T? key4,
   ])  : assert(key1 != null),
         _keys = HashSet<T>()..add(key1) {
     int count = 1;
@@ -77,8 +76,8 @@ class KeySet<T extends KeyboardKey> {
         assert(!keys.contains(null)),
         _keys = HashSet<T>.from(keys);
 
-  /// Returns an unmodifiable view of the [KeyboardKey]s in this [KeySet].
-  Set<T> get keys => UnmodifiableSetView<T>(_keys);
+  /// Returns a copy of the [KeyboardKey]s in this [KeySet].
+  Set<T> get keys => _keys.toSet();
   final HashSet<T> _keys;
 
   @override
@@ -97,14 +96,14 @@ class KeySet<T extends KeyboardKey> {
 
   // Cached hash code value. Improves [hashCode] performance by 27%-900%,
   // depending on key set size and read/write ratio.
-  int _hashCode;
+  int? _hashCode;
 
   @override
   // ignore: avoid_equals_and_hash_code_on_mutable_classes, to remove in NNBD with a late final hashcode
   int get hashCode {
     // Return cached hash code if available.
     if (_hashCode != null) {
-      return _hashCode;
+      return _hashCode!;
     }
 
     // Compute order-independent hash and cache it.
@@ -167,9 +166,9 @@ class LogicalKeySet extends KeySet<LogicalKeyboardKey> with Diagnosticable {
   /// not be appear more than once in the set.
   LogicalKeySet(
     LogicalKeyboardKey key1, [
-    LogicalKeyboardKey key2,
-    LogicalKeyboardKey key3,
-    LogicalKeyboardKey key4,
+    LogicalKeyboardKey? key2,
+    LogicalKeyboardKey? key3,
+    LogicalKeyboardKey? key4,
   ]) : super(key1, key2, key3, key4);
 
   /// Create  a [LogicalKeySet] from a set of [LogicalKeyboardKey]s.
@@ -201,7 +200,7 @@ class LogicalKeySet extends KeySet<LogicalKeyboardKey> with Diagnosticable {
           } else if (bIsModifier && !aIsModifier) {
             return 1;
           }
-          return a.debugName.compareTo(b.debugName);
+          return a.debugName!.compareTo(b.debugName!);
         }
     );
     return sortedKeys.map<String>((LogicalKeyboardKey key) => key.debugName.toString()).join(' + ');
@@ -227,7 +226,7 @@ class ShortcutMapProperty extends DiagnosticsProperty<Map<LogicalKeySet, Intent>
     bool showName = true,
     Object defaultValue = kNoDefaultValue,
     DiagnosticLevel level = DiagnosticLevel.info,
-    String description,
+    String? description,
   }) : assert(showName != null),
        assert(level != null),
        super(
@@ -240,7 +239,10 @@ class ShortcutMapProperty extends DiagnosticsProperty<Map<LogicalKeySet, Intent>
        );
 
   @override
-  String valueToString({ TextTreeConfiguration parentConfiguration }) {
+  Map<LogicalKeySet, Intent> get value => super.value!;
+
+  @override
+  String valueToString({ TextTreeConfiguration? parentConfiguration }) {
     return '{${value.keys.map<String>((LogicalKeySet keySet) => '{${keySet.debugDescribeKeys()}}: ${value[keySet]}').join(', ')}}';
   }
 }
@@ -271,10 +273,11 @@ class ShortcutManager extends ChangeNotifier with Diagnosticable {
   ///
   /// When the map is changed, listeners to this manager will be notified.
   ///
-  /// The returned [LogicalKeyMap] should not be modified.
+  /// The returned map should not be modified.
   Map<LogicalKeySet, Intent> get shortcuts => _shortcuts;
   Map<LogicalKeySet, Intent> _shortcuts;
   set shortcuts(Map<LogicalKeySet, Intent> value) {
+    assert(value != null);
     if (!mapEquals<LogicalKeySet, Intent>(_shortcuts, value)) {
       _shortcuts = value;
       notifyListeners();
@@ -298,14 +301,28 @@ class ShortcutManager extends ChangeNotifier with Diagnosticable {
   bool handleKeypress(
     BuildContext context,
     RawKeyEvent event, {
-    LogicalKeySet keysPressed,
+    LogicalKeySet? keysPressed,
   }) {
     if (event is! RawKeyDownEvent) {
       return false;
     }
     assert(context != null);
-    final LogicalKeySet keySet = keysPressed ?? LogicalKeySet.fromSet(RawKeyboard.instance.keysPressed);
-    Intent matchedIntent = _shortcuts[keySet];
+    LogicalKeySet? keySet = keysPressed;
+    if (keySet == null) {
+      assert(RawKeyboard.instance.keysPressed.isNotEmpty,
+        'Received a key down event when no keys are in keysPressed. '
+        "This state can occur if the key event being sent doesn't properly "
+        'set its modifier flags. This was the event: $event and its data: '
+        '${event.data}');
+      // Avoid the crash in release mode, since it's easy to miss a particular
+      // bad key sequence in testing, and so shouldn't crash the app in release.
+      if (RawKeyboard.instance.keysPressed.isNotEmpty) {
+        keySet = LogicalKeySet.fromSet(RawKeyboard.instance.keysPressed);
+      } else {
+        return false;
+      }
+    }
+    Intent? matchedIntent = _shortcuts[keySet];
     if (matchedIntent == null) {
       // If there's not a more specific match, We also look for any keys that
       // have synonyms in the map.  This is for things like left and right shift
@@ -323,9 +340,9 @@ class ShortcutManager extends ChangeNotifier with Diagnosticable {
       matchedIntent = _shortcuts[LogicalKeySet.fromSet(pseudoKeys)];
     }
     if (matchedIntent != null) {
-      final BuildContext primaryContext = primaryFocus?.context;
+      final BuildContext? primaryContext = primaryFocus?.context;
       assert (primaryContext != null);
-      Actions.invoke(primaryContext, matchedIntent, nullOk: true);
+      Actions.invoke(primaryContext!, matchedIntent, nullOk: true);
       return true;
     }
     return false;
@@ -349,16 +366,18 @@ class ShortcutManager extends ChangeNotifier with Diagnosticable {
 ///    invoked.
 ///  * [Action], a class for defining an invocation of a user action.
 class Shortcuts extends StatefulWidget {
-  /// Creates a ActionManager object.
+  /// Creates a const [Shortcuts] widget.
   ///
-  /// The [child] argument must not be null.
+  /// The [child] and [shortcuts] arguments are required and must not be null.
   const Shortcuts({
-    Key key,
+    Key? key,
     this.manager,
-    this.shortcuts,
-    this.child,
+    required this.shortcuts,
+    required this.child,
     this.debugLabel,
-  }) : super(key: key);
+  }) : assert(shortcuts != null),
+       assert(child != null),
+       super(key: key);
 
   /// The [ShortcutManager] that will manage the mapping between key
   /// combinations and [Action]s.
@@ -367,7 +386,7 @@ class Shortcuts extends StatefulWidget {
   ///
   /// This manager will be given new [shortcuts] to manage whenever the
   /// [shortcuts] change materially.
-  final ShortcutManager manager;
+  final ShortcutManager? manager;
 
   /// {@template flutter.widgets.shortcuts.shortcuts}
   /// The map of shortcuts that the [ShortcutManager] will be given to manage.
@@ -390,15 +409,15 @@ class Shortcuts extends StatefulWidget {
   ///
   /// This allows simplifying the diagnostic output to avoid cluttering it
   /// unnecessarily with the default shortcut map.
-  final String debugLabel;
+  final String? debugLabel;
 
   /// Returns the [ActionDispatcher] that most tightly encloses the given
   /// [BuildContext].
   ///
   /// The [context] argument must not be null.
-  static ShortcutManager of(BuildContext context, {bool nullOk = false}) {
+  static ShortcutManager? of(BuildContext context, {bool nullOk = false}) {
     assert(context != null);
-    final _ShortcutsMarker inherited = context.dependOnInheritedWidgetOfExactType<_ShortcutsMarker>();
+    final _ShortcutsMarker? inherited = context.dependOnInheritedWidgetOfExactType<_ShortcutsMarker>();
     assert(() {
       if (nullOk) {
         return true;
@@ -429,8 +448,8 @@ class Shortcuts extends StatefulWidget {
 }
 
 class _ShortcutsState extends State<Shortcuts> {
-  ShortcutManager _internalManager;
-  ShortcutManager get manager => widget.manager ?? _internalManager;
+  ShortcutManager? _internalManager;
+  ShortcutManager get manager => widget.manager ?? _internalManager!;
 
   @override
   void dispose() {
@@ -465,7 +484,7 @@ class _ShortcutsState extends State<Shortcuts> {
     if (node.context == null) {
       return false;
     }
-    return manager.handleKeypress(node.context, event) || manager.modal;
+    return manager.handleKeypress(node.context!, event) || manager.modal;
   }
 
   @override
@@ -484,8 +503,8 @@ class _ShortcutsState extends State<Shortcuts> {
 
 class _ShortcutsMarker extends InheritedNotifier<ShortcutManager> {
   const _ShortcutsMarker({
-    @required ShortcutManager manager,
-    @required Widget child,
+    required ShortcutManager manager,
+    required Widget child,
   })  : assert(manager != null),
         assert(child != null),
         super(notifier: manager, child: child);

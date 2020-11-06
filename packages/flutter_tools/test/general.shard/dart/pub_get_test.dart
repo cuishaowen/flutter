@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
-
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:flutter_tools/src/base/bot_detector.dart';
@@ -17,7 +15,7 @@ import 'package:flutter_tools/src/dart/pub.dart';
 import 'package:flutter_tools/src/reporting/reporting.dart';
 import 'package:mockito/mockito.dart';
 import 'package:process/process.dart';
-import 'package:quiver/testing/async.dart';
+import 'package:fake_async/fake_async.dart';
 
 import '../../src/common.dart';
 import '../../src/context.dart';
@@ -197,10 +195,10 @@ void main() {
   });
 
   testWithoutContext('analytics sent on success', () async {
-    MockDirectory.findCache = true;
+    final FileSystem fileSystem = MemoryFileSystem.test();
     final MockUsage usage = MockUsage();
     final Pub pub = Pub(
-      fileSystem: MockFileSystem(),
+      fileSystem: fileSystem,
       logger: BufferLogger.test(),
       processManager: MockProcessManager(0),
       botDetector: const BotDetectorAlwaysNo(),
@@ -211,11 +209,65 @@ void main() {
         }
       ),
     );
+    fileSystem.file('pubspec.yaml').createSync();
+    fileSystem.file('.dart_tool/package_config.json')
+      ..createSync(recursive: true)
+      ..writeAsStringSync('{"configVersion": 2,"packages": []}');
 
-    await pub.get(context: PubContext.flutterTests, checkLastModified: false);
+    await pub.get(
+      context: PubContext.flutterTests,
+      generateSyntheticPackage: true,
+      checkLastModified: false,
+    );
 
     verify(usage.sendEvent('pub-result', 'flutter-tests', label: 'success')).called(1);
   });
+
+  testWithoutContext('package_config_subset file is generated from packages and not timestamp', () async {
+    final FileSystem fileSystem = MemoryFileSystem.test();
+    final MockUsage usage = MockUsage();
+    final Pub pub = Pub(
+      fileSystem: fileSystem,
+      logger: BufferLogger.test(),
+      processManager: MockProcessManager(0),
+      botDetector: const BotDetectorAlwaysNo(),
+      usage: usage,
+      platform: FakePlatform(
+        environment: const <String, String>{
+          'PUB_CACHE': 'custom/pub-cache/path',
+        }
+      ),
+    );
+    fileSystem.file('pubspec.yaml').createSync();
+    fileSystem.file('.dart_tool/package_config.json')
+      ..createSync(recursive: true)
+      ..writeAsStringSync('''
+      {"configVersion": 2,"packages": [
+        {
+          "name": "flutter_tools",
+          "rootUri": "../",
+          "packageUri": "lib/",
+          "languageVersion": "2.7"
+        }
+      ],"generated":"some-time"}
+''');
+
+    await pub.get(
+      context: PubContext.flutterTests,
+      generateSyntheticPackage: true,
+      checkLastModified: false,
+    );
+
+    expect(
+      fileSystem.file('.dart_tool/package_config_subset').readAsStringSync(),
+      'flutter_tools\n'
+      '2.7\n'
+      'file:///\n'
+      'file:///lib/\n'
+      '2\n',
+    );
+  });
+
 
   testWithoutContext('analytics sent on failure', () async {
     MockDirectory.findCache = true;
@@ -242,10 +294,10 @@ void main() {
   });
 
   testWithoutContext('analytics sent on failed version solve', () async {
-    MockDirectory.findCache = true;
     final MockUsage usage = MockUsage();
+    final FileSystem fileSystem = MemoryFileSystem.test();
     final Pub pub = Pub(
-      fileSystem: MockFileSystem(),
+      fileSystem: fileSystem,
       logger: BufferLogger.test(),
       processManager: MockProcessManager(
         1,
@@ -259,6 +311,7 @@ void main() {
       usage: usage,
       botDetector: const BotDetectorAlwaysNo(),
     );
+    fileSystem.file('pubspec.yaml').writeAsStringSync('name: foo');
 
     try {
       await pub.get(context: PubContext.flutterTests, checkLastModified: false);

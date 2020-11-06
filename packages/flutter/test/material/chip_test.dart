@@ -71,7 +71,7 @@ double getEnableProgress(WidgetTester tester) => getRenderChip(tester)?.enableAn
 
 /// Adds the basic requirements for a Chip.
 Widget _wrapForChip({
-  Widget child,
+  required Widget child,
   TextDirection textDirection = TextDirection.ltr,
   double textScaleFactor = 1.0,
   Brightness brightness = Brightness.light,
@@ -94,8 +94,8 @@ Widget _wrapForChip({
 /// cause the chip or label to exceed its constrained height.
 Future<void> _testConstrainedLabel(
   WidgetTester tester, {
-  CircleAvatar avatar,
-  VoidCallback onDeleted,
+  CircleAvatar? avatar,
+  VoidCallback? onDeleted,
 }) async {
   const double labelWidth = 100.0;
   const double labelHeight = 50.0;
@@ -132,7 +132,7 @@ Future<void> _testConstrainedLabel(
   expect(chipSize.height, chipParentHeight);
 }
 
-Widget _selectedInputChip({ Color checkmarkColor }) {
+Widget _selectedInputChip({ Color? checkmarkColor }) {
   return InputChip(
     label: const Text('InputChip'),
     selected: true,
@@ -141,7 +141,7 @@ Widget _selectedInputChip({ Color checkmarkColor }) {
   );
 }
 
-Widget _selectedFilterChip({ Color checkmarkColor }) {
+Widget _selectedFilterChip({ Color? checkmarkColor }) {
   return FilterChip(
     label: const Text('InputChip'),
     selected: true,
@@ -153,8 +153,8 @@ Widget _selectedFilterChip({ Color checkmarkColor }) {
 
 Future<void> _pumpCheckmarkChip(
   WidgetTester tester, {
-  @required Widget chip,
-  Color themeColor,
+  required Widget chip,
+  Color? themeColor,
   Brightness brightness = Brightness.light,
 }) async {
   await tester.pumpWidget(
@@ -189,9 +189,9 @@ void _expectCheckmarkColor(Finder finder, Color color) {
 }
 
 Widget _chipWithOptionalDeleteButton({
-  UniqueKey deleteButtonKey,
-  UniqueKey labelKey,
-  bool deletable,
+  UniqueKey? deleteButtonKey,
+  UniqueKey? labelKey,
+  required bool deletable,
   TextDirection textDirection = TextDirection.ltr,
 }){
   return _wrapForChip(
@@ -392,7 +392,7 @@ void main() {
     'the chip when it exceeds the available space',
     (WidgetTester tester) async {
       // Regression test for https://github.com/flutter/flutter/issues/11523
-      Widget chipBuilder (String text, {Widget avatar, VoidCallback onDeleted}) {
+      Widget chipBuilder (String text, {Widget? avatar, VoidCallback? onDeleted}) {
         return MaterialApp(
           home: Scaffold(
             body: Container(
@@ -588,9 +588,9 @@ void main() {
     // https://github.com/flutter/flutter/issues/12357
     expect(tester.getSize(find.text('Chip A')), anyOf(const Size(252.0, 42.0), const Size(251.0, 42.0)));
     expect(tester.getSize(find.text('Chip B')), anyOf(const Size(252.0, 42.0), const Size(251.0, 42.0)));
-    expect(tester.getSize(find.byType(Chip).first).width, anyOf(318.0, 319.0));
+    expect(tester.getSize(find.byType(Chip).first).width, anyOf(310.0, 311.0));
     expect(tester.getSize(find.byType(Chip).first).height, equals(50.0));
-    expect(tester.getSize(find.byType(Chip).last).width, anyOf(318.0, 319.0));
+    expect(tester.getSize(find.byType(Chip).last).width, anyOf(310.0, 311.0));
     expect(tester.getSize(find.byType(Chip).last).height, equals(50.0));
 
     // Check that individual text scales are taken into account.
@@ -768,7 +768,7 @@ void main() {
 
   testWidgets('Avatar drawer works as expected on RawChip', (WidgetTester tester) async {
     final GlobalKey labelKey = GlobalKey();
-    Future<void> pushChip({ Widget avatar }) async {
+    Future<void> pushChip({ Widget? avatar }) async {
       return tester.pumpWidget(
         _wrapForChip(
           child: Wrap(
@@ -806,28 +806,28 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 20));
     // Avatar drawer should start expanding.
-    expect(tester.getSize(find.byType(RawChip)).width, closeTo(81.2, 0.1));
+    expect(tester.getSize(find.byType(RawChip)).width, moreOrLessEquals(81.2, epsilon: 0.1));
     expect(tester.getSize(find.byKey(avatarKey)), equals(const Size(24.0, 24.0)));
-    expect(tester.getTopLeft(find.byKey(avatarKey)).dx, closeTo(-18.8, 0.1));
-    expect(tester.getTopLeft(find.byKey(labelKey)).dx, closeTo(13.2, 0.1));
+    expect(tester.getTopLeft(find.byKey(avatarKey)).dx, moreOrLessEquals(-18.8, epsilon: 0.1));
+    expect(tester.getTopLeft(find.byKey(labelKey)).dx, moreOrLessEquals(13.2, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 20));
-    expect(tester.getSize(find.byType(RawChip)).width, closeTo(86.7, 0.1));
+    expect(tester.getSize(find.byType(RawChip)).width, moreOrLessEquals(86.7, epsilon: 0.1));
     expect(tester.getSize(find.byKey(avatarKey)), equals(const Size(24.0, 24.0)));
-    expect(tester.getTopLeft(find.byKey(avatarKey)).dx, closeTo(-13.3, 0.1));
-    expect(tester.getTopLeft(find.byKey(labelKey)).dx, closeTo(18.6, 0.1));
+    expect(tester.getTopLeft(find.byKey(avatarKey)).dx, moreOrLessEquals(-13.3, epsilon: 0.1));
+    expect(tester.getTopLeft(find.byKey(labelKey)).dx, moreOrLessEquals(18.6, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 20));
-    expect(tester.getSize(find.byType(RawChip)).width, closeTo(94.7, 0.1));
+    expect(tester.getSize(find.byType(RawChip)).width, moreOrLessEquals(94.7, epsilon: 0.1));
     expect(tester.getSize(find.byKey(avatarKey)), equals(const Size(24.0, 24.0)));
-    expect(tester.getTopLeft(find.byKey(avatarKey)).dx, closeTo(-5.3, 0.1));
-    expect(tester.getTopLeft(find.byKey(labelKey)).dx, closeTo(26.7, 0.1));
+    expect(tester.getTopLeft(find.byKey(avatarKey)).dx, moreOrLessEquals(-5.3, epsilon: 0.1));
+    expect(tester.getTopLeft(find.byKey(labelKey)).dx, moreOrLessEquals(26.7, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 20));
-    expect(tester.getSize(find.byType(RawChip)).width, closeTo(99.5, 0.1));
+    expect(tester.getSize(find.byType(RawChip)).width, moreOrLessEquals(99.5, epsilon: 0.1));
     expect(tester.getSize(find.byKey(avatarKey)), equals(const Size(24.0, 24.0)));
-    expect(tester.getTopLeft(find.byKey(avatarKey)).dx, closeTo(-0.5, 0.1));
-    expect(tester.getTopLeft(find.byKey(labelKey)).dx, closeTo(31.5, 0.1));
+    expect(tester.getTopLeft(find.byKey(avatarKey)).dx, moreOrLessEquals(-0.5, epsilon: 0.1));
+    expect(tester.getTopLeft(find.byKey(labelKey)).dx, moreOrLessEquals(31.5, epsilon: 0.1));
 
     // Wait for being done with animation, and make sure it didn't change
     // height.
@@ -847,28 +847,28 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 20));
     // Avatar drawer should start contracting.
-    expect(tester.getSize(find.byType(RawChip)).width, closeTo(102.9, 0.1));
+    expect(tester.getSize(find.byType(RawChip)).width, moreOrLessEquals(102.9, epsilon: 0.1));
     expect(tester.getSize(find.byKey(avatarKey)), equals(const Size(24.0, 24.0)));
-    expect(tester.getTopLeft(find.byKey(avatarKey)).dx, closeTo(2.9, 0.1));
-    expect(tester.getTopLeft(find.byKey(labelKey)).dx, closeTo(34.9, 0.1));
+    expect(tester.getTopLeft(find.byKey(avatarKey)).dx, moreOrLessEquals(2.9, epsilon: 0.1));
+    expect(tester.getTopLeft(find.byKey(labelKey)).dx, moreOrLessEquals(34.9, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 20));
-    expect(tester.getSize(find.byType(RawChip)).width, closeTo(98.0, 0.1));
+    expect(tester.getSize(find.byType(RawChip)).width, moreOrLessEquals(98.0, epsilon: 0.1));
     expect(tester.getSize(find.byKey(avatarKey)), equals(const Size(24.0, 24.0)));
-    expect(tester.getTopLeft(find.byKey(avatarKey)).dx, closeTo(-2.0, 0.1));
-    expect(tester.getTopLeft(find.byKey(labelKey)).dx, closeTo(30.0, 0.1));
+    expect(tester.getTopLeft(find.byKey(avatarKey)).dx, moreOrLessEquals(-2.0, epsilon: 0.1));
+    expect(tester.getTopLeft(find.byKey(labelKey)).dx, moreOrLessEquals(30.0, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 20));
-    expect(tester.getSize(find.byType(RawChip)).width, closeTo(84.1, 0.1));
+    expect(tester.getSize(find.byType(RawChip)).width, moreOrLessEquals(84.1, epsilon: 0.1));
     expect(tester.getSize(find.byKey(avatarKey)), equals(const Size(24.0, 24.0)));
-    expect(tester.getTopLeft(find.byKey(avatarKey)).dx, closeTo(-15.9, 0.1));
-    expect(tester.getTopLeft(find.byKey(labelKey)).dx, closeTo(16.1, 0.1));
+    expect(tester.getTopLeft(find.byKey(avatarKey)).dx, moreOrLessEquals(-15.9, epsilon: 0.1));
+    expect(tester.getTopLeft(find.byKey(labelKey)).dx, moreOrLessEquals(16.1, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 20));
-    expect(tester.getSize(find.byType(RawChip)).width, closeTo(80.0, 0.1));
+    expect(tester.getSize(find.byType(RawChip)).width, moreOrLessEquals(80.0, epsilon: 0.1));
     expect(tester.getSize(find.byKey(avatarKey)), equals(const Size(24.0, 24.0)));
-    expect(tester.getTopLeft(find.byKey(avatarKey)).dx, closeTo(-20.0, 0.1));
-    expect(tester.getTopLeft(find.byKey(labelKey)).dx, closeTo(12.0, 0.1));
+    expect(tester.getTopLeft(find.byKey(avatarKey)).dx, moreOrLessEquals(-20.0, epsilon: 0.1));
+    expect(tester.getTopLeft(find.byKey(labelKey)).dx, moreOrLessEquals(12.0, epsilon: 0.1));
 
     // Wait for being done with animation, make sure it didn't change
     // height, and make sure that the avatar is no longer drawn.
@@ -921,25 +921,25 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 20));
     // Delete button drawer should start expanding.
-    expect(tester.getSize(find.byType(RawChip)).width, closeTo(81.2, 0.1));
+    expect(tester.getSize(find.byType(RawChip)).width, moreOrLessEquals(81.2, epsilon: 0.1));
     expect(tester.getSize(find.byKey(deleteButtonKey)), equals(const Size(24.0, 24.0)));
-    expect(tester.getTopLeft(find.byKey(deleteButtonKey)).dx, closeTo(53.2, 0.1));
+    expect(tester.getTopLeft(find.byKey(deleteButtonKey)).dx, moreOrLessEquals(53.2, epsilon: 0.1));
     expect(tester.getTopLeft(find.byKey(labelKey)), equals(const Offset(12.0, 17.0)));
 
     await tester.pump(const Duration(milliseconds: 20));
-    expect(tester.getSize(find.byType(RawChip)).width, closeTo(86.7, 0.1));
+    expect(tester.getSize(find.byType(RawChip)).width, moreOrLessEquals(86.7, epsilon: 0.1));
     expect(tester.getSize(find.byKey(deleteButtonKey)), equals(const Size(24.0, 24.0)));
-    expect(tester.getTopLeft(find.byKey(deleteButtonKey)).dx, closeTo(58.7, 0.1));
+    expect(tester.getTopLeft(find.byKey(deleteButtonKey)).dx, moreOrLessEquals(58.7, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 20));
-    expect(tester.getSize(find.byType(RawChip)).width, closeTo(94.7, 0.1));
+    expect(tester.getSize(find.byType(RawChip)).width, moreOrLessEquals(94.7, epsilon: 0.1));
     expect(tester.getSize(find.byKey(deleteButtonKey)), equals(const Size(24.0, 24.0)));
-    expect(tester.getTopLeft(find.byKey(deleteButtonKey)).dx, closeTo(66.7, 0.1));
+    expect(tester.getTopLeft(find.byKey(deleteButtonKey)).dx, moreOrLessEquals(66.7, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 20));
-    expect(tester.getSize(find.byType(RawChip)).width, closeTo(99.5, 0.1));
+    expect(tester.getSize(find.byType(RawChip)).width, moreOrLessEquals(99.5, epsilon: 0.1));
     expect(tester.getSize(find.byKey(deleteButtonKey)), equals(const Size(24.0, 24.0)));
-    expect(tester.getTopLeft(find.byKey(deleteButtonKey)).dx, closeTo(71.5, 0.1));
+    expect(tester.getTopLeft(find.byKey(deleteButtonKey)).dx, moreOrLessEquals(71.5, epsilon: 0.1));
 
     // Wait for being done with animation, and make sure it didn't change
     // height.
@@ -966,25 +966,25 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 20));
     // Delete button drawer should start contracting.
-    expect(tester.getSize(find.byType(RawChip)).width, closeTo(103.8, 0.1));
+    expect(tester.getSize(find.byType(RawChip)).width, moreOrLessEquals(103.8, epsilon: 0.1));
     expect(tester.getSize(find.byKey(deleteButtonKey)), equals(const Size(24.0, 24.0)));
-    expect(tester.getTopLeft(find.byKey(deleteButtonKey)).dx, closeTo(75.8, 0.1));
+    expect(tester.getTopLeft(find.byKey(deleteButtonKey)).dx, moreOrLessEquals(75.8, epsilon: 0.1));
     expect(tester.getTopLeft(find.byKey(labelKey)), equals(const Offset(12.0, 17.0)));
 
     await tester.pump(const Duration(milliseconds: 20));
-    expect(tester.getSize(find.byType(RawChip)).width, closeTo(102.9, 0.1));
+    expect(tester.getSize(find.byType(RawChip)).width, moreOrLessEquals(102.9, epsilon: 0.1));
     expect(tester.getSize(find.byKey(deleteButtonKey)), equals(const Size(24.0, 24.0)));
-    expect(tester.getTopLeft(find.byKey(deleteButtonKey)).dx, closeTo(74.9, 0.1));
+    expect(tester.getTopLeft(find.byKey(deleteButtonKey)).dx, moreOrLessEquals(74.9, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 20));
-    expect(tester.getSize(find.byType(RawChip)).width, closeTo(101.0, 0.1));
+    expect(tester.getSize(find.byType(RawChip)).width, moreOrLessEquals(101.0, epsilon: 0.1));
     expect(tester.getSize(find.byKey(deleteButtonKey)), equals(const Size(24.0, 24.0)));
-    expect(tester.getTopLeft(find.byKey(deleteButtonKey)).dx, closeTo(73.0, 0.1));
+    expect(tester.getTopLeft(find.byKey(deleteButtonKey)).dx, moreOrLessEquals(73.0, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 20));
-    expect(tester.getSize(find.byType(RawChip)).width, closeTo(97.5, 0.1));
+    expect(tester.getSize(find.byType(RawChip)).width, moreOrLessEquals(97.5, epsilon: 0.1));
     expect(tester.getSize(find.byKey(deleteButtonKey)), equals(const Size(24.0, 24.0)));
-    expect(tester.getTopLeft(find.byKey(deleteButtonKey)).dx, closeTo(69.5, 0.1));
+    expect(tester.getTopLeft(find.byKey(deleteButtonKey)).dx, moreOrLessEquals(69.5, epsilon: 0.1));
 
     // Wait for being done with animation, make sure it didn't change
     // height, and make sure that the delete button is no longer drawn.
@@ -1193,7 +1193,7 @@ void main() {
   testWidgets('Selection with avatar works as expected on RawChip', (WidgetTester tester) async {
     bool selected = false;
     final UniqueKey labelKey = UniqueKey();
-    Future<void> pushChip({ Widget avatar, bool selectable = false }) async {
+    Future<void> pushChip({ Widget? avatar, bool selectable = false }) async {
       return tester.pumpWidget(
         _wrapForChip(
           child: Wrap(
@@ -1239,14 +1239,14 @@ void main() {
     // Simulate a tap on the label to select the chip.
     await tester.tap(find.byKey(labelKey));
     expect(selected, equals(true));
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(2));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(2));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
-    expect(getSelectProgress(tester), closeTo(0.002, 0.01));
+    expect(getSelectProgress(tester), moreOrLessEquals(0.002, epsilon: 0.01));
     expect(getAvatarDrawerProgress(tester), equals(1.0));
     expect(getDeleteDrawerProgress(tester), equals(0.0));
     await tester.pump(const Duration(milliseconds: 50));
-    expect(getSelectProgress(tester), closeTo(0.54, 0.01));
+    expect(getSelectProgress(tester), moreOrLessEquals(0.54, epsilon: 0.01));
     expect(getAvatarDrawerProgress(tester), equals(1.0));
     expect(getDeleteDrawerProgress(tester), equals(0.0));
     await tester.pump(const Duration(milliseconds: 100));
@@ -1257,14 +1257,14 @@ void main() {
     // Simulate another tap on the label to deselect the chip.
     await tester.tap(find.byKey(labelKey));
     expect(selected, equals(false));
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(2));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(2));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 20));
-    expect(getSelectProgress(tester), closeTo(0.875, 0.01));
+    expect(getSelectProgress(tester), moreOrLessEquals(0.875, epsilon: 0.01));
     expect(getAvatarDrawerProgress(tester), equals(1.0));
     expect(getDeleteDrawerProgress(tester), equals(0.0));
     await tester.pump(const Duration(milliseconds: 20));
-    expect(getSelectProgress(tester), closeTo(0.13, 0.01));
+    expect(getSelectProgress(tester), moreOrLessEquals(0.13, epsilon: 0.01));
     expect(getAvatarDrawerProgress(tester), equals(1.0));
     expect(getDeleteDrawerProgress(tester), equals(0.0));
     await tester.pump(const Duration(milliseconds: 100));
@@ -1315,15 +1315,15 @@ void main() {
     // Simulate a tap on the label to select the chip.
     await tester.tap(find.byKey(labelKey));
     expect(selected, equals(true));
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(2));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(2));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
-    expect(getSelectProgress(tester), closeTo(0.002, 0.01));
-    expect(getAvatarDrawerProgress(tester), closeTo(0.459, 0.01));
+    expect(getSelectProgress(tester), moreOrLessEquals(0.002, epsilon: 0.01));
+    expect(getAvatarDrawerProgress(tester), moreOrLessEquals(0.459, epsilon: 0.01));
     expect(getDeleteDrawerProgress(tester), equals(0.0));
     await tester.pump(const Duration(milliseconds: 50));
-    expect(getSelectProgress(tester), closeTo(0.54, 0.01));
-    expect(getAvatarDrawerProgress(tester), closeTo(0.92, 0.01));
+    expect(getSelectProgress(tester), moreOrLessEquals(0.54, epsilon: 0.01));
+    expect(getAvatarDrawerProgress(tester), moreOrLessEquals(0.92, epsilon: 0.01));
     expect(getDeleteDrawerProgress(tester), equals(0.0));
     await tester.pump(const Duration(milliseconds: 100));
     expect(getSelectProgress(tester), equals(1.0));
@@ -1333,15 +1333,15 @@ void main() {
     // Simulate another tap on the label to deselect the chip.
     await tester.tap(find.byKey(labelKey));
     expect(selected, equals(false));
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(2));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(2));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 20));
-    expect(getSelectProgress(tester), closeTo(0.875, 0.01));
-    expect(getAvatarDrawerProgress(tester), closeTo(0.96, 0.01));
+    expect(getSelectProgress(tester), moreOrLessEquals(0.875, epsilon: 0.01));
+    expect(getAvatarDrawerProgress(tester), moreOrLessEquals(0.96, epsilon: 0.01));
     expect(getDeleteDrawerProgress(tester), equals(0.0));
     await tester.pump(const Duration(milliseconds: 20));
-    expect(getSelectProgress(tester), closeTo(0.13, 0.01));
-    expect(getAvatarDrawerProgress(tester), closeTo(0.75, 0.01));
+    expect(getSelectProgress(tester), moreOrLessEquals(0.13, epsilon: 0.01));
+    expect(getAvatarDrawerProgress(tester), moreOrLessEquals(0.75, epsilon: 0.01));
     expect(getDeleteDrawerProgress(tester), equals(0.0));
     await tester.pump(const Duration(milliseconds: 100));
     expect(getSelectProgress(tester), equals(0.0));
@@ -1352,7 +1352,7 @@ void main() {
   testWidgets('Activation works as expected on RawChip', (WidgetTester tester) async {
     bool selected = false;
     final UniqueKey labelKey = UniqueKey();
-    Future<void> pushChip({ Widget avatar, bool selectable = false }) async {
+    Future<void> pushChip({ Widget? avatar, bool selectable = false }) async {
       return tester.pumpWidget(
         _wrapForChip(
           child: Wrap(
@@ -1390,14 +1390,14 @@ void main() {
 
     await tester.tap(find.byKey(labelKey));
     expect(selected, equals(true));
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(2));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(2));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
-    expect(getSelectProgress(tester), closeTo(0.002, 0.01));
+    expect(getSelectProgress(tester), moreOrLessEquals(0.002, epsilon: 0.01));
     expect(getAvatarDrawerProgress(tester), equals(1.0));
     expect(getDeleteDrawerProgress(tester), equals(0.0));
     await tester.pump(const Duration(milliseconds: 50));
-    expect(getSelectProgress(tester), closeTo(0.54, 0.01));
+    expect(getSelectProgress(tester), moreOrLessEquals(0.54, epsilon: 0.01));
     expect(getAvatarDrawerProgress(tester), equals(1.0));
     expect(getDeleteDrawerProgress(tester), equals(0.0));
     await tester.pump(const Duration(milliseconds: 100));
@@ -1482,9 +1482,9 @@ void main() {
     final ChipThemeData defaultChipTheme = themeData.chipTheme;
     bool value = false;
     Widget buildApp({
-      ChipThemeData chipTheme,
-      Widget avatar,
-      Widget deleteIcon,
+      ChipThemeData? chipTheme,
+      Widget? avatar,
+      Widget? deleteIcon,
       bool isSelectable = true,
       bool isPressable = false,
       bool isDeletable = true,
@@ -1504,7 +1504,7 @@ void main() {
                 avatar: avatar,
                 deleteIcon: deleteIcon,
                 isEnabled: isSelectable || isPressable,
-                shape: chipTheme.shape,
+                shape: chipTheme?.shape,
                 selected: isSelectable && value,
                 label: Text('$value'),
                 onSelected: isSelectable
@@ -1615,11 +1615,19 @@ void main() {
                 textDirection: TextDirection.ltr,
                 children: <TestSemantics>[
                   TestSemantics(
-                    flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
                     children: <TestSemantics>[
                       TestSemantics(
-                        label: 'test',
-                        textDirection: TextDirection.ltr,
+                        flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
+                        children: <TestSemantics>[
+                          TestSemantics(
+                            label: 'test',
+                            textDirection: TextDirection.ltr,
+                            flags: <SemanticsFlag>[
+                              SemanticsFlag.hasEnabledState,
+                              SemanticsFlag.isButton,
+                            ],
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -1649,18 +1657,26 @@ void main() {
                 textDirection: TextDirection.ltr,
                 children: <TestSemantics>[
                   TestSemantics(
-                    flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
                     children: <TestSemantics>[
                       TestSemantics(
-                        label: 'test',
-                        textDirection: TextDirection.ltr,
+                        flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
                         children: <TestSemantics>[
                           TestSemantics(
-                            label: 'Delete',
-                            actions: <SemanticsAction>[SemanticsAction.tap],
+                            label: 'test',
                             textDirection: TextDirection.ltr,
                             flags: <SemanticsFlag>[
+                              SemanticsFlag.hasEnabledState,
                               SemanticsFlag.isButton,
+                            ],
+                            children: <TestSemantics>[
+                              TestSemantics(
+                                label: 'Delete',
+                                actions: <SemanticsAction>[SemanticsAction.tap],
+                                textDirection: TextDirection.ltr,
+                                flags: <SemanticsFlag>[
+                                  SemanticsFlag.isButton,
+                                ],
+                              ),
                             ],
                           ),
                         ],
@@ -1693,17 +1709,22 @@ void main() {
                 textDirection: TextDirection.ltr,
                 children: <TestSemantics>[
                   TestSemantics(
-                    flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
-                    children: <TestSemantics>[
+                    children: <TestSemantics> [
                       TestSemantics(
-                        label: 'test',
-                        textDirection: TextDirection.ltr,
-                        flags: <SemanticsFlag>[
-                          SemanticsFlag.hasEnabledState,
-                          SemanticsFlag.isEnabled,
-                          SemanticsFlag.isFocusable,
+                        flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
+                        children: <TestSemantics>[
+                          TestSemantics(
+                            label: 'test',
+                            textDirection: TextDirection.ltr,
+                            flags: <SemanticsFlag>[
+                              SemanticsFlag.hasEnabledState,
+                              SemanticsFlag.isButton,
+                              SemanticsFlag.isEnabled,
+                              SemanticsFlag.isFocusable,
+                            ],
+                            actions: <SemanticsAction>[SemanticsAction.tap],
+                          ),
                         ],
-                        actions: <SemanticsAction>[SemanticsAction.tap],
                       ),
                     ],
                   ),
@@ -1740,17 +1761,22 @@ void main() {
                 textDirection: TextDirection.ltr,
                 children: <TestSemantics>[
                   TestSemantics(
-                    flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
                     children: <TestSemantics>[
                       TestSemantics(
-                        label: 'test',
-                        textDirection: TextDirection.ltr,
-                        flags: <SemanticsFlag>[
-                          SemanticsFlag.hasEnabledState,
-                          SemanticsFlag.isEnabled,
-                          SemanticsFlag.isFocusable,
+                        flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
+                        children: <TestSemantics>[
+                          TestSemantics(
+                            label: 'test',
+                            textDirection: TextDirection.ltr,
+                            flags: <SemanticsFlag>[
+                              SemanticsFlag.hasEnabledState,
+                              SemanticsFlag.isButton,
+                              SemanticsFlag.isEnabled,
+                              SemanticsFlag.isFocusable,
+                            ],
+                            actions: <SemanticsAction>[SemanticsAction.tap],
+                          ),
                         ],
-                        actions: <SemanticsAction>[SemanticsAction.tap],
                       ),
                     ],
                   ),
@@ -1781,18 +1807,23 @@ void main() {
                 textDirection: TextDirection.ltr,
                 children: <TestSemantics>[
                   TestSemantics(
-                    flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
                     children: <TestSemantics>[
                       TestSemantics(
-                        label: 'test',
-                        textDirection: TextDirection.ltr,
-                        flags: <SemanticsFlag>[
-                          SemanticsFlag.hasEnabledState,
-                          SemanticsFlag.isEnabled,
-                          SemanticsFlag.isFocusable,
-                          SemanticsFlag.isSelected,
+                        flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
+                        children: <TestSemantics>[
+                          TestSemantics(
+                            label: 'test',
+                            textDirection: TextDirection.ltr,
+                            flags: <SemanticsFlag>[
+                              SemanticsFlag.hasEnabledState,
+                              SemanticsFlag.isButton,
+                              SemanticsFlag.isEnabled,
+                              SemanticsFlag.isFocusable,
+                              SemanticsFlag.isSelected,
+                            ],
+                            actions: <SemanticsAction>[SemanticsAction.tap],
+                          ),
                         ],
-                        actions: <SemanticsAction>[SemanticsAction.tap],
                       ),
                     ],
                   ),
@@ -1824,13 +1855,154 @@ void main() {
                 textDirection: TextDirection.ltr,
                 children: <TestSemantics>[
                   TestSemantics(
-                    flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
                     children: <TestSemantics>[
                       TestSemantics(
-                        label: 'test',
-                        textDirection: TextDirection.ltr,
-                        flags: <SemanticsFlag>[],
-                        actions: <SemanticsAction>[],
+                        flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
+                        children: <TestSemantics>[
+                          TestSemantics(
+                            label: 'test',
+                            textDirection: TextDirection.ltr,
+                            flags: <SemanticsFlag>[
+                              SemanticsFlag.hasEnabledState,
+                              SemanticsFlag.isButton,
+                            ],
+                            actions: <SemanticsAction>[],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ), ignoreTransform: true, ignoreId: true, ignoreRect: true));
+
+      semanticsTester.dispose();
+    });
+
+    testWidgets('tapEnabled explicitly false', (WidgetTester tester) async {
+      final SemanticsTester semanticsTester = SemanticsTester(tester);
+
+      await tester.pumpWidget(const MaterialApp(
+        home: Material(
+          child: RawChip(
+            tapEnabled: false,
+            label: Text('test'),
+          ),
+        ),
+      ));
+
+      expect(semanticsTester, hasSemantics(
+          TestSemantics.root(
+            children: <TestSemantics>[
+              TestSemantics(
+                textDirection: TextDirection.ltr,
+                children: <TestSemantics>[
+                  TestSemantics(
+                    children: <TestSemantics>[
+                      TestSemantics(
+                        flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
+                        children: <TestSemantics>[
+                          TestSemantics(
+                            label: 'test',
+                            textDirection: TextDirection.ltr,
+                            flags: <SemanticsFlag>[], // Must not be a button when tapping is disabled.
+                            actions: <SemanticsAction>[],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ), ignoreTransform: true, ignoreId: true, ignoreRect: true));
+
+      semanticsTester.dispose();
+    });
+
+    testWidgets('enabled when tapEnabled and canTap', (WidgetTester tester) async {
+      final SemanticsTester semanticsTester = SemanticsTester(tester);
+
+      // These settings make a Chip which can be tapped, both in general and at this moment.
+      await tester.pumpWidget(MaterialApp(
+        home: Material(
+          child: RawChip(
+            isEnabled: true,
+            tapEnabled: true,
+            onPressed: () {},
+            label: const Text('test'),
+          ),
+        ),
+      ));
+
+      expect(semanticsTester, hasSemantics(
+          TestSemantics.root(
+            children: <TestSemantics>[
+              TestSemantics(
+                textDirection: TextDirection.ltr,
+                children: <TestSemantics>[
+                  TestSemantics(
+                    children: <TestSemantics>[
+                      TestSemantics(
+                        flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
+                        children: <TestSemantics>[
+                          TestSemantics(
+                            label: 'test',
+                            textDirection: TextDirection.ltr,
+                            flags: <SemanticsFlag>[
+                              SemanticsFlag.hasEnabledState,
+                              SemanticsFlag.isButton,
+                              SemanticsFlag.isEnabled,
+                              SemanticsFlag.isFocusable,
+                            ],
+                            actions: <SemanticsAction>[SemanticsAction.tap],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ), ignoreTransform: true, ignoreId: true, ignoreRect: true));
+
+      semanticsTester.dispose();
+    });
+
+    testWidgets('disabled when tapEnabled but not canTap', (WidgetTester tester) async {
+      final SemanticsTester semanticsTester = SemanticsTester(tester);
+        // These settings make a Chip which _could_ be tapped, but not currently (ensures `canTap == false`).
+        await tester.pumpWidget(const MaterialApp(
+        home: Material(
+          child: RawChip(
+            isEnabled: true,
+            tapEnabled: true,
+            label: Text('test'),
+          ),
+        ),
+      ));
+
+      expect(semanticsTester, hasSemantics(
+          TestSemantics.root(
+            children: <TestSemantics>[
+              TestSemantics(
+                textDirection: TextDirection.ltr,
+                children: <TestSemantics>[
+                  TestSemantics(
+                    children: <TestSemantics>[
+                      TestSemantics(
+                        flags: <SemanticsFlag>[SemanticsFlag.scopesRoute],
+                        children: <TestSemantics>[
+                          TestSemantics(
+                            label: 'test',
+                            textDirection: TextDirection.ltr,
+                            flags: <SemanticsFlag>[
+                              SemanticsFlag.hasEnabledState,
+                              SemanticsFlag.isButton,
+                            ],
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -2122,20 +2294,6 @@ void main() {
     expect(find.byType(InkWell), findsOneWidget);
   });
 
-  testWidgets('RawChip.selected can not be null', (WidgetTester tester) async {
-    expect(() async {
-      MaterialApp(
-        home: Material(
-          child: RawChip(
-            onPressed: () { },
-            selected: null,
-            label: const Text('Chip'),
-          ),
-        ),
-      );
-    }, throwsAssertionError);
-  });
-
   testWidgets('Chip uses stateful color for text color in different states', (WidgetTester tester) async {
     final FocusNode focusNode = FocusNode();
 
@@ -2181,7 +2339,7 @@ void main() {
       );
     }
     Color textColor() {
-      return tester.renderObject<RenderParagraph>(find.text('Chip')).text.style.color;
+      return tester.renderObject<RenderParagraph>(find.text('Chip')).text.style!.color!;
     }
 
     // Default, not disabled.

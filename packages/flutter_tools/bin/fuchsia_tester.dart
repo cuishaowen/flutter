@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
 import 'dart:convert' show json;
 import 'dart:math' as math;
 
@@ -155,7 +154,7 @@ Future<void> run(List<String> args) async {
       concurrency: math.max(1, globals.platform.numberOfProcessors - 2),
       icudtlPath: globals.fs.path.absolute(argResults[_kOptionIcudtl] as String),
       coverageDirectory: coverageDirectory,
-      dartExperiments: <String>[],
+      extraFrontEndOptions: <String>[],
     );
 
     if (collector != null) {

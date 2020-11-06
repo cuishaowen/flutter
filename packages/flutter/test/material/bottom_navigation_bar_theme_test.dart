@@ -28,7 +28,7 @@ void main() {
     expect(themeData.showUnselectedLabels, null);
     expect(themeData.type, null);
 
-    const BottomNavigationBarTheme theme = BottomNavigationBarTheme(data: BottomNavigationBarThemeData());
+    const BottomNavigationBarTheme theme = BottomNavigationBarTheme(data: BottomNavigationBarThemeData(), child: SizedBox());
     expect(theme.data.backgroundColor, null);
     expect(theme.data.elevation, null);
     expect(theme.data.selectedIconTheme, null);
@@ -93,7 +93,7 @@ void main() {
     expect(description[10], 'type: BottomNavigationBarType.fixed');
   });
 
-  testWidgets('BottomNavigationBar is themable', (WidgetTester tester) async {
+  testWidgets('BottomNavigationBar is themeable', (WidgetTester tester) async {
     const Color backgroundColor = Color(0xFF000001);
     const Color selectedItemColor = Color(0xFF000002);
     const Color unselectedItemColor = Color(0xFF000003);
@@ -125,11 +125,11 @@ void main() {
             items: const <BottomNavigationBarItem>[
               BottomNavigationBarItem(
                 icon: Icon(Icons.ac_unit),
-                title: Text('AC'),
+                label: 'AC',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.access_alarm),
-                title: Text('Alarm'),
+                label: 'Alarm',
               ),
             ],
           ),
@@ -137,14 +137,14 @@ void main() {
       ),
     );
 
-    final TextStyle selectedFontStyle = tester.renderObject<RenderParagraph>(find.text('AC')).text.style;
+    final TextStyle selectedFontStyle = tester.renderObject<RenderParagraph>(find.text('AC')).text.style!;
     final TextStyle selectedIcon = _iconStyle(tester, Icons.ac_unit);
     final TextStyle unselectedIcon = _iconStyle(tester, Icons.access_alarm);
     expect(selectedFontStyle.fontSize, selectedFontStyle.fontSize);
     // Unselected label has a font size of 22 but is scaled down to be font size 21.
     expect(
       tester.firstWidget<Transform>(find.ancestor(of: find.text('Alarm'), matching: find.byType(Transform))).transform,
-      equals(Matrix4.diagonal3(Vector3.all(unselectedTextStyle.fontSize / selectedTextStyle.fontSize))),
+      equals(Matrix4.diagonal3(Vector3.all(unselectedTextStyle.fontSize! / selectedTextStyle.fontSize!))),
     );
     expect(selectedIcon.color, equals(selectedItemColor));
     expect(selectedIcon.fontSize, equals(selectedIconTheme.size));
@@ -218,11 +218,11 @@ void main() {
             items: const <BottomNavigationBarItem>[
               BottomNavigationBarItem(
                 icon: Icon(Icons.ac_unit),
-                title: Text('AC'),
+                label: 'AC',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.access_alarm),
-                title: Text('Alarm'),
+                label: 'Alarm',
               ),
             ],
           ),
@@ -230,14 +230,14 @@ void main() {
       ),
     );
 
-    final TextStyle selectedFontStyle = tester.renderObject<RenderParagraph>(find.text('AC')).text.style;
+    final TextStyle selectedFontStyle = tester.renderObject<RenderParagraph>(find.text('AC')).text.style!;
     final TextStyle selectedIcon = _iconStyle(tester, Icons.ac_unit);
     final TextStyle unselectedIcon = _iconStyle(tester, Icons.access_alarm);
     expect(selectedFontStyle.fontSize, selectedFontStyle.fontSize);
     // Unselected label has a font size of 22 but is scaled down to be font size 21.
     expect(
       tester.firstWidget<Transform>(find.ancestor(of: find.text('Alarm'), matching: find.byType(Transform))).transform,
-      equals(Matrix4.diagonal3(Vector3.all(unselectedTextStyle.fontSize / selectedTextStyle.fontSize))),
+      equals(Matrix4.diagonal3(Vector3.all(unselectedTextStyle.fontSize! / selectedTextStyle.fontSize!))),
     );
     expect(selectedIcon.color, equals(selectedItemColor));
     expect(selectedIcon.fontSize, equals(selectedIconTheme.size));
@@ -264,7 +264,7 @@ TextStyle _iconStyle(WidgetTester tester, IconData icon) {
   final RichText iconRichText = tester.widget<RichText>(
     find.descendant(of: find.byIcon(icon), matching: find.byType(RichText)),
   );
-  return iconRichText.text.style;
+  return iconRichText.text.style!;
 }
 
 Material _material(WidgetTester tester) {

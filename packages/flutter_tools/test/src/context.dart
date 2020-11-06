@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 import 'dart:async';
-import 'dart:io' as io;
 
 import 'package:flutter_tools/src/android/android_workflow.dart';
 import 'package:flutter_tools/src/base/bot_detector.dart';
@@ -18,7 +17,7 @@ import 'package:flutter_tools/src/base/signals.dart';
 import 'package:flutter_tools/src/base/template.dart';
 import 'package:flutter_tools/src/base/terminal.dart';
 import 'package:flutter_tools/src/base/time.dart';
-import 'package:flutter_tools/src/build_runner/mustache_template.dart';
+import 'package:flutter_tools/src/isolated/mustache_template.dart';
 import 'package:flutter_tools/src/cache.dart';
 import 'package:flutter_tools/src/context_runner.dart';
 import 'package:flutter_tools/src/dart/pub.dart';
@@ -158,8 +157,8 @@ void testUsingContext(
               rethrow;
             }
           }, onError: (Object error, StackTrace stackTrace) { // ignore: deprecated_member_use
-            io.stdout.writeln(error);
-            io.stdout.writeln(stackTrace);
+            print(error);
+            print(stackTrace);
             _printBufferedErrors(context);
             throw error;
           });
@@ -249,7 +248,7 @@ class FakeDeviceManager implements DeviceManager {
   }
 
   @override
-  Future<List<Device>> findTargetDevices(FlutterProject flutterProject) async {
+  Future<List<Device>> findTargetDevices(FlutterProject flutterProject, { Duration timeout }) async {
     return devices;
   }
 }
@@ -308,19 +307,10 @@ class FakeOperatingSystemUtils implements OperatingSystemUtils {
   File makePipe(String path) => null;
 
   @override
-  void zip(Directory data, File zipFile) { }
-
-  @override
   void unzip(File file, Directory targetDirectory) { }
 
   @override
-  bool verifyZip(File file) => true;
-
-  @override
   void unpack(File gzippedTarFile, Directory targetDirectory) { }
-
-  @override
-  bool verifyGzip(File gzippedFile) => true;
 
   @override
   Stream<List<int>> gzipLevel1Stream(Stream<List<int>> stream) => stream;
@@ -396,6 +386,9 @@ class FakeXcodeProjectInterpreter implements XcodeProjectInterpreter {
   int get minorVersion => 0;
 
   @override
+  int get patchVersion => 0;
+
+  @override
   Future<Map<String, String>> getBuildSettings(
     String projectPath, {
     String scheme,
@@ -415,6 +408,7 @@ class FakeXcodeProjectInterpreter implements XcodeProjectInterpreter {
       <String>['Runner'],
       <String>['Debug', 'Release'],
       <String>['Runner'],
+      BufferLogger.test(),
     );
   }
 }

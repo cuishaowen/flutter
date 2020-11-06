@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @dart = 2.8
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -337,5 +339,24 @@ void main() {
     // at trailing edge. This also covers test for ListTileControlAffinity.trailing.
     expect(listTile.leading.runtimeType, Icon);
     expect(listTile.trailing.runtimeType, Switch);
+  });
+
+  testWidgets('SwitchListTile respects shape', (WidgetTester tester) async {
+    const ShapeBorder shapeBorder = RoundedRectangleBorder(
+      borderRadius: BorderRadius.horizontal(right: Radius.circular(100))
+    );
+
+    await tester.pumpWidget(const MaterialApp(
+      home: Material(
+        child: SwitchListTile(
+          value: true,
+          onChanged: null,
+          title: Text('Title'),
+          shape: shapeBorder,
+        ),
+      ),
+    ));
+
+    expect(tester.widget<InkWell>(find.byType(InkWell)).customBorder, shapeBorder);
   });
 }

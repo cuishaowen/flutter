@@ -2,7 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
+// @dart = 2.8
+
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -413,6 +414,7 @@ void _defineTests() {
             selected: true,
             hidden: true,
             button: true,
+            slider: true,
             link: true,
             textField: true,
             readOnly: true,
@@ -463,6 +465,7 @@ void _defineTests() {
             selected: true,
             hidden: true,
             button: true,
+            slider: true,
             link: true,
             textField: true,
             readOnly: true,
@@ -500,7 +503,7 @@ void _defineTests() {
     );
     expect(semantics, hasSemantics(expectedSemantics, ignoreRect: true, ignoreTransform: true));
     semantics.dispose();
-  }, skip: isBrowser);
+  }, skip: true); // TODO(abrusher): Enable once engine PR #20385 lands.
 
   group('diffing', () {
     testWidgets('complains about duplicate keys', (WidgetTester tester) async {

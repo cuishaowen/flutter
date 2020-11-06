@@ -56,7 +56,8 @@ void main() {
       BuildInfo.debug,
       false,
       false,
-      <String>[],
+      null,
+      true,
     ), throwsToolExit());
   }, overrides: <Type, Generator>{
     Platform: () => fakePlatform,

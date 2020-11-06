@@ -64,7 +64,7 @@ void main() {
     await tester.pump(); // No animation should start.
     // Check the transientCallbackCount before tearing down the widget to ensure
     // that no animation is running.
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(0));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(0));
   });
 
   testWidgets('Slider does not move when tapped (RTL)', (WidgetTester tester) async {
@@ -100,7 +100,7 @@ void main() {
     await tester.pump(); // No animation should start.
     // Check the transientCallbackCount before tearing down the widget to ensure
     // that no animation is running.
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(0));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(0));
   });
 
   testWidgets('Slider calls onChangeStart once when interaction begins', (WidgetTester tester) async {
@@ -141,7 +141,7 @@ void main() {
     await tester.pump(); // No animation should start.
     // Check the transientCallbackCount before tearing down the widget to ensure
     // that no animation is running.
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(0));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(0));
   });
 
   testWidgets('Slider calls onChangeEnd once after interaction has ended', (WidgetTester tester) async {
@@ -182,14 +182,14 @@ void main() {
     await tester.pump(); // No animation should start.
     // Check the transientCallbackCount before tearing down the widget to ensure
     // that no animation is running.
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(0));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(0));
   });
 
   testWidgets('Slider moves when dragged (LTR)', (WidgetTester tester) async {
     final Key sliderKey = UniqueKey();
     double value = 0.0;
-    double startValue;
-    double endValue;
+    late double startValue;
+    late double endValue;
 
     await tester.pumpWidget(
       CupertinoApp(
@@ -236,14 +236,14 @@ void main() {
     await tester.pump(); // No animation should start.
     // Check the transientCallbackCount before tearing down the widget to ensure
     // that no animation is running.
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(0));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(0));
   });
 
   testWidgets('Slider moves when dragged (RTL)', (WidgetTester tester) async {
     final Key sliderKey = UniqueKey();
     double value = 0.0;
-    double startValue;
-    double endValue;
+    late double startValue;
+    late double endValue;
 
     await tester.pumpWidget(
       CupertinoApp(
@@ -290,7 +290,7 @@ void main() {
     await tester.pump(); // No animation should start.
     // Check the transientCallbackCount before tearing down the widget to ensure
     // that no animation is running.
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(0));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(0));
   });
 
   testWidgets('Slider Semantics', (WidgetTester tester) async {

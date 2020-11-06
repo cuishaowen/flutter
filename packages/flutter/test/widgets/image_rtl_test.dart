@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
-import 'dart:typed_data';
-import 'dart:ui' as ui show Image, ImageByteFormat;
+// @dart = 2.8
+
+import 'dart:ui' as ui show Image;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -13,6 +13,10 @@ import 'package:flutter_test/flutter_test.dart';
 import '../rendering/mock_canvas.dart';
 
 class TestImageProvider extends ImageProvider<TestImageProvider> {
+  const TestImageProvider(this.image);
+
+  final ui.Image image;
+
   @override
   Future<TestImageProvider> obtainKey(ImageConfiguration configuration) {
     return SynchronousFuture<TestImageProvider>(this);
@@ -21,28 +25,16 @@ class TestImageProvider extends ImageProvider<TestImageProvider> {
   @override
   ImageStreamCompleter load(TestImageProvider key, DecoderCallback decode) {
     return OneFrameImageStreamCompleter(
-      SynchronousFuture<ImageInfo>(ImageInfo(image: TestImage()))
+      SynchronousFuture<ImageInfo>(ImageInfo(image: image)),
     );
   }
 }
 
-class TestImage implements ui.Image {
-  @override
-  int get width => 16;
-
-  @override
-  int get height => 9;
-
-  @override
-  void dispose() { }
-
-  @override
-  Future<ByteData> toByteData({ ui.ImageByteFormat format = ui.ImageByteFormat.rawRgba }) async {
-    throw UnsupportedError('Cannot encode test image');
-  }
-}
-
 void main() {
+  ui.Image testImage;
+  setUpAll(() async {
+    testImage = await createTestImage(width: 16, height: 9);
+  });
   testWidgets('DecorationImage RTL with alignment topEnd and match', (WidgetTester tester) async {
     await tester.pumpWidget(
       Directionality(
@@ -53,7 +45,7 @@ void main() {
             height: 50.0,
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: TestImageProvider(),
+                image: TestImageProvider(testImage),
                 alignment: AlignmentDirectional.topEnd,
                 repeat: ImageRepeat.repeatX,
                 matchTextDirection: true,
@@ -92,7 +84,7 @@ void main() {
             height: 50.0,
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: TestImageProvider(),
+                image: TestImageProvider(testImage),
                 alignment: AlignmentDirectional.topEnd,
                 repeat: ImageRepeat.repeatX,
                 matchTextDirection: true,
@@ -128,7 +120,7 @@ void main() {
             height: 50.0,
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: TestImageProvider(),
+                image: TestImageProvider(testImage),
                 alignment: AlignmentDirectional.topEnd,
                 repeat: ImageRepeat.repeatX,
               ),
@@ -163,7 +155,7 @@ void main() {
             height: 50.0,
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: TestImageProvider(),
+                image: TestImageProvider(testImage),
                 alignment: AlignmentDirectional.topEnd,
                 repeat: ImageRepeat.repeatX,
               ),
@@ -198,7 +190,7 @@ void main() {
             height: 50.0,
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: TestImageProvider(),
+                image: TestImageProvider(testImage),
                 alignment: Alignment.centerRight,
                 matchTextDirection: true,
               ),
@@ -230,7 +222,7 @@ void main() {
             height: 50.0,
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: TestImageProvider(),
+                image: TestImageProvider(testImage),
                 alignment: Alignment.centerRight,
               ),
             ),
@@ -257,7 +249,7 @@ void main() {
             height: 50.0,
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: TestImageProvider(),
+                image: TestImageProvider(testImage),
                 alignment: Alignment.centerRight,
                 matchTextDirection: true,
               ),
@@ -285,7 +277,7 @@ void main() {
             height: 50.0,
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: TestImageProvider(),
+                image: TestImageProvider(testImage),
                 alignment: Alignment.centerRight,
                 matchTextDirection: true,
               ),
@@ -312,7 +304,7 @@ void main() {
             width: 100.0,
             height: 50.0,
             child: Image(
-              image: TestImageProvider(),
+              image: TestImageProvider(testImage),
               alignment: AlignmentDirectional.topEnd,
               repeat: ImageRepeat.repeatX,
               matchTextDirection: true,
@@ -349,7 +341,7 @@ void main() {
             width: 100.0,
             height: 50.0,
             child: Image(
-              image: TestImageProvider(),
+              image: TestImageProvider(testImage),
               alignment: AlignmentDirectional.topEnd,
               repeat: ImageRepeat.repeatX,
               matchTextDirection: true,
@@ -383,7 +375,7 @@ void main() {
             width: 100.0,
             height: 50.0,
             child: Image(
-              image: TestImageProvider(),
+              image: TestImageProvider(testImage),
               alignment: AlignmentDirectional.topEnd,
               repeat: ImageRepeat.repeatX,
             ),
@@ -416,7 +408,7 @@ void main() {
             width: 100.0,
             height: 50.0,
             child: Image(
-              image: TestImageProvider(),
+              image: TestImageProvider(testImage),
               alignment: AlignmentDirectional.topEnd,
               repeat: ImageRepeat.repeatX,
             ),
@@ -449,15 +441,13 @@ void main() {
             width: 100.0,
             height: 50.0,
             child: Image(
-              image: TestImageProvider(),
+              image: TestImageProvider(testImage),
               alignment: Alignment.centerRight,
               matchTextDirection: true,
             ),
           ),
         ),
       ),
-      Duration.zero,
-      EnginePhase.layout, // so that we don't try to paint the fake images
     );
     expect(find.byType(Container), paints
       ..translate(x: 50.0, y: 0.0)
@@ -479,7 +469,7 @@ void main() {
             width: 100.0,
             height: 50.0,
             child: Image(
-              image: TestImageProvider(),
+              image: TestImageProvider(testImage),
               alignment: Alignment.centerRight,
             ),
           ),
@@ -504,7 +494,7 @@ void main() {
             width: 100.0,
             height: 50.0,
             child: Image(
-              image: TestImageProvider(),
+              image: TestImageProvider(testImage),
               alignment: Alignment.centerRight,
               matchTextDirection: true,
             ),
@@ -530,7 +520,7 @@ void main() {
             width: 100.0,
             height: 50.0,
             child: Image(
-              image: TestImageProvider(),
+              image: TestImageProvider(testImage),
               alignment: Alignment.centerRight,
               matchTextDirection: true,
             ),
@@ -552,7 +542,7 @@ void main() {
       Directionality(
         textDirection: TextDirection.ltr,
         child: Image(
-          image: TestImageProvider(),
+          image: TestImageProvider(testImage),
           alignment: Alignment.centerRight,
           matchTextDirection: false,
         ),
@@ -564,7 +554,7 @@ void main() {
       Directionality(
         textDirection: TextDirection.ltr,
         child: Image(
-          image: TestImageProvider(),
+          image: TestImageProvider(testImage),
           alignment: AlignmentDirectional.centerEnd,
           matchTextDirection: true,
         ),
@@ -576,7 +566,7 @@ void main() {
       Directionality(
         textDirection: TextDirection.ltr,
         child: Image(
-          image: TestImageProvider(),
+          image: TestImageProvider(testImage),
           alignment: Alignment.centerRight,
           matchTextDirection: false,
         ),

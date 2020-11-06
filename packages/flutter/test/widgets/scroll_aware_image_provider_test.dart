@@ -2,13 +2,23 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @dart = 2.8
+
+import 'dart:ui' as ui show Image;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
 
 import '../painting/image_test_utils.dart';
-import '../painting/mocks_for_image_cache.dart' show TestImage;
 
 void main() {
+
+  ui.Image testImage;
+
+  setUpAll(() async {
+    testImage = await createTestImage(width: 10, height: 10);
+  });
+
   tearDown(() {
     imageCache.clear();
   });
@@ -26,7 +36,6 @@ void main() {
     await tester.pumpWidget(TestWidget(key));
 
     final DisposableBuildContext context = DisposableBuildContext(key.currentState);
-    const TestImage testImage = TestImage(width: 10, height: 10);
     final TestImageProvider testImageProvider = TestImageProvider(testImage);
     final ScrollAwareImageProvider<TestImageProvider> imageProvider = ScrollAwareImageProvider<TestImageProvider>(
       context: context,
@@ -62,7 +71,6 @@ void main() {
     ));
 
     final DisposableBuildContext context = DisposableBuildContext(key.currentState);
-    const TestImage testImage = TestImage(width: 10, height: 10);
     final TestImageProvider testImageProvider = TestImageProvider(testImage);
     final ScrollAwareImageProvider<TestImageProvider> imageProvider = ScrollAwareImageProvider<TestImageProvider>(
       context: context,
@@ -103,7 +111,6 @@ void main() {
     ));
 
     final DisposableBuildContext context = DisposableBuildContext(keys.last.currentState);
-    const TestImage testImage = TestImage(width: 10, height: 10);
     final TestImageProvider testImageProvider = TestImageProvider(testImage);
     final ScrollAwareImageProvider<TestImageProvider> imageProvider = ScrollAwareImageProvider<TestImageProvider>(
       context: context,
@@ -161,7 +168,6 @@ void main() {
     ));
 
     final DisposableBuildContext context = DisposableBuildContext(keys.last.currentState);
-    const TestImage testImage = TestImage(width: 10, height: 10);
     final TestImageProvider testImageProvider = TestImageProvider(testImage);
     final ScrollAwareImageProvider<TestImageProvider> imageProvider = ScrollAwareImageProvider<TestImageProvider>(
       context: context,
@@ -229,7 +235,6 @@ void main() {
     ));
 
     final DisposableBuildContext context = DisposableBuildContext(keys.last.currentState);
-    const TestImage testImage = TestImage(width: 10, height: 10);
     final TestImageProvider testImageProvider = TestImageProvider(testImage);
     final ScrollAwareImageProvider<TestImageProvider> imageProvider = ScrollAwareImageProvider<TestImageProvider>(
       context: context,
@@ -295,7 +300,6 @@ void main() {
     ));
 
     final DisposableBuildContext context = DisposableBuildContext(key.currentState);
-    const TestImage testImage = TestImage(width: 10, height: 10);
     final TestImageProvider testImageProvider = TestImageProvider(testImage);
     final ScrollAwareImageProvider<TestImageProvider> imageProvider = ScrollAwareImageProvider<TestImageProvider>(
       context: context,
@@ -315,7 +319,7 @@ void main() {
     expect(imageCache.containsKey(testImageProvider), false);
     expect(imageCache.currentSize, 0);
 
-    // Simulate a case where somone else has managed to complete this stream -
+    // Simulate a case where someone else has managed to complete this stream -
     // so it can land in the cache right before we stop scrolling fast.
     // If we miss the early return, we will fail.
     testImageProvider.complete();
@@ -347,7 +351,6 @@ void main() {
     ));
 
     final DisposableBuildContext context = DisposableBuildContext(key.currentState);
-    const TestImage testImage = TestImage(width: 10, height: 10);
     final TestImageProvider testImageProvider = TestImageProvider(testImage);
     final ScrollAwareImageProvider<TestImageProvider> imageProvider = ScrollAwareImageProvider<TestImageProvider>(
       context: context,
@@ -367,7 +370,7 @@ void main() {
     expect(imageCache.currentSize, 0);
 
     // Occupy the only slot in the cache with another image.
-    final TestImageProvider testImageProvider2 = TestImageProvider(const TestImage());
+    final TestImageProvider testImageProvider2 = TestImageProvider(testImage);
     testImageProvider2.complete();
     await precacheImage(testImageProvider2, context.context);
     expect(imageCache.containsKey(testImageProvider), false);
@@ -378,7 +381,7 @@ void main() {
     testImageProvider.complete();
     stream.setCompleter(testImageProvider.load(testImageProvider, PaintingBinding.instance.instantiateImageCodec));
 
-    // Verify that this hasn't chagned the cache state yet
+    // Verify that this hasn't changed the cache state yet
     expect(imageCache.containsKey(testImageProvider), false);
     expect(imageCache.containsKey(testImageProvider2), true);
     expect(imageCache.currentSize, 1);

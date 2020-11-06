@@ -173,9 +173,110 @@ abstract class Logger {
   void clear();
 }
 
+/// A [Logger] that forwards all methods to another one.
+///
+/// Classes can derive from this to add functionality to an existing [Logger].
+class DelegatingLogger implements Logger {
+  @visibleForTesting
+  @protected
+  DelegatingLogger(this._delegate);
+
+  final Logger _delegate;
+
+  @override
+  bool get quiet => _delegate.quiet;
+
+  @override
+  set quiet(bool value) => _delegate.quiet = value;
+
+  @override
+  bool get hasTerminal => _delegate.hasTerminal;
+
+  @override
+  Terminal get _terminal => _delegate._terminal;
+
+  @override
+  OutputPreferences get _outputPreferences => _delegate._outputPreferences;
+
+  @override
+  TimeoutConfiguration get _timeoutConfiguration => _delegate._timeoutConfiguration;
+
+  @override
+  bool get isVerbose => _delegate.isVerbose;
+
+  @override
+  void printError(String message, {StackTrace stackTrace, bool emphasis, TerminalColor color, int indent, int hangingIndent, bool wrap}) {
+    _delegate.printError(
+      message,
+      stackTrace: stackTrace,
+      emphasis: emphasis,
+      color: color,
+      indent: indent,
+      hangingIndent: hangingIndent,
+      wrap: wrap,
+    );
+  }
+
+  @override
+  void printStatus(String message, {bool emphasis, TerminalColor color, bool newline, int indent, int hangingIndent, bool wrap}) {
+    _delegate.printStatus(message,
+      emphasis: emphasis,
+      color: color,
+      newline: newline,
+      indent: indent,
+      hangingIndent: hangingIndent,
+      wrap: wrap,
+    );
+  }
+
+  @override
+  void printTrace(String message) {
+    _delegate.printTrace(message);
+  }
+
+  @override
+  void sendEvent(String name, [Map<String, dynamic> args]) {
+    _delegate.sendEvent(name, args);
+  }
+
+  @override
+  Status startProgress(String message, {Duration timeout, String progressId, bool multilineOutput = false, int progressIndicatorPadding = kDefaultStatusPadding}) {
+    return _delegate.startProgress(message,
+      timeout: timeout,
+      progressId: progressId,
+      multilineOutput: multilineOutput,
+      progressIndicatorPadding: progressIndicatorPadding,
+    );
+  }
+
+  @override
+  bool get supportsColor => _delegate.supportsColor;
+
+  @override
+  void clear() => _delegate.clear();
+}
+
+/// If [logger] is a [DelegatingLogger], walks the delegate chain and returns
+/// the first delegate with the matching type.
+///
+/// Throws a [StateError] if no matching delegate is found.
+@override
+T asLogger<T extends Logger>(Logger logger) {
+  final Logger original = logger;
+  while (true) {
+    if (logger is T) {
+      return logger;
+    } else if (logger is DelegatingLogger) {
+      logger = (logger as DelegatingLogger)._delegate;
+    } else {
+      throw StateError('$original has no ancestor delegate of type $T');
+    }
+  }
+}
+
 class StdoutLogger extends Logger {
   StdoutLogger({
-    @required AnsiTerminal terminal,
+    @required Terminal terminal,
     @required Stdio stdio,
     @required OutputPreferences outputPreferences,
     @required TimeoutConfiguration timeoutConfiguration,
@@ -188,7 +289,7 @@ class StdoutLogger extends Logger {
       _stopwatchFactory = stopwatchFactory;
 
   @override
-  final AnsiTerminal _terminal;
+  final Terminal _terminal;
   @override
   final OutputPreferences _outputPreferences;
   @override
@@ -345,7 +446,7 @@ class StdoutLogger extends Logger {
 /// they will show up as the unrepresentable character symbol '�'.
 class WindowsStdoutLogger extends StdoutLogger {
   WindowsStdoutLogger({
-    @required AnsiTerminal terminal,
+    @required Terminal terminal,
     @required Stdio stdio,
     @required OutputPreferences outputPreferences,
     @required TimeoutConfiguration timeoutConfiguration,
@@ -364,6 +465,7 @@ class WindowsStdoutLogger extends StdoutLogger {
     final String windowsMessage = _terminal.supportsEmoji
       ? message
       : message.replaceAll('🔥', '')
+               .replaceAll('🖼️', '')
                .replaceAll('✗', 'X')
                .replaceAll('✓', '√')
                .replaceAll('🔨', '');
@@ -507,26 +609,16 @@ class BufferLogger extends Logger {
   }
 }
 
-class VerboseLogger extends Logger {
-  VerboseLogger(this.parent,  {
+class VerboseLogger extends DelegatingLogger {
+  VerboseLogger(Logger parent, {
     StopwatchFactory stopwatchFactory = const StopwatchFactory()
   }) : _stopwatch = stopwatchFactory.createStopwatch(),
-       _stopwatchFactory = stopwatchFactory {
+       _stopwatchFactory = stopwatchFactory,
+       super(parent) {
     _stopwatch.start();
   }
 
-  final Logger parent;
-
   final Stopwatch _stopwatch;
-
-  @override
-  Terminal get _terminal => parent._terminal;
-
-  @override
-  OutputPreferences get _outputPreferences => parent._outputPreferences;
-
-  @override
-  TimeoutConfiguration get _timeoutConfiguration => parent._timeoutConfiguration;
 
   final StopwatchFactory _stopwatchFactory;
 
@@ -634,28 +726,19 @@ class VerboseLogger extends Logger {
     final String indentMessage = message.replaceAll('\n', '\n$indent');
 
     if (type == _LogType.error) {
-      parent.printError(prefix + _terminal.bolden(indentMessage));
+      super.printError(prefix + _terminal.bolden(indentMessage));
       if (stackTrace != null) {
-        parent.printError(indent + stackTrace.toString().replaceAll('\n', '\n$indent'));
+        super.printError(indent + stackTrace.toString().replaceAll('\n', '\n$indent'));
       }
     } else if (type == _LogType.status) {
-      parent.printStatus(prefix + _terminal.bolden(indentMessage));
+      super.printStatus(prefix + _terminal.bolden(indentMessage));
     } else {
-      parent.printStatus(prefix + indentMessage);
+      super.printStatus(prefix + indentMessage);
     }
   }
 
   @override
   void sendEvent(String name, [Map<String, dynamic> args]) { }
-
-  @override
-  bool get supportsColor => parent.supportsColor;
-
-  @override
-  bool get hasTerminal => parent.hasTerminal;
-
-  @override
-  void clear() => parent.clear();
 }
 
 enum _LogType { error, status, trace }
@@ -783,6 +866,13 @@ class SilentStatus extends Status {
     timeoutConfiguration: timeoutConfiguration,
     stopwatch: stopwatch,
   );
+
+  @override
+  void finish() {
+    if (onFinish != null) {
+      onFinish();
+    }
+  }
 }
 
 /// Constructor writes [message] to [stdout].  On [cancel] or [stop], will call
@@ -999,7 +1089,7 @@ class AnsiStatus extends AnsiSpinner {
     this.padding = kDefaultStatusPadding,
     @required Duration timeout,
     @required Stopwatch stopwatch,
-    @required AnsiTerminal terminal,
+    @required Terminal terminal,
     VoidCallback onFinish,
     Stdio stdio,
     TimeoutConfiguration timeoutConfiguration,

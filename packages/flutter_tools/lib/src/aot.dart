@@ -2,15 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
-
 import 'package:meta/meta.dart';
 
 import 'base/common.dart';
 import 'base/logger.dart';
 import 'build_info.dart';
 import 'build_system/build_system.dart';
-import 'build_system/targets/dart.dart';
+import 'build_system/targets/common.dart';
 import 'build_system/targets/icon_tree_shaker.dart';
 import 'build_system/targets/ios.dart';
 import 'cache.dart';
@@ -119,10 +117,10 @@ class AotBuilder {
       PerformanceMeasurement aot;
       if (expectSo) {
         aot = result.performance.values.firstWhere(
-          (PerformanceMeasurement measurement) => measurement.analyicsName == 'android_aot');
+          (PerformanceMeasurement measurement) => measurement.analyticsName == 'android_aot');
       } else {
         aot = result.performance.values.firstWhere(
-          (PerformanceMeasurement measurement) => measurement.analyicsName == 'ios_aot');
+          (PerformanceMeasurement measurement) => measurement.analyticsName == 'ios_aot');
       }
       globals.printStatus('frontend(CompileTime): ${kernel.elapsedMilliseconds} ms.');
       globals.printStatus('snapshot(CompileTime): ${aot.elapsedMilliseconds} ms.');

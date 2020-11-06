@@ -4,7 +4,9 @@
 
 import 'package:meta/meta.dart';
 
+import 'base/config.dart';
 import 'base/context.dart';
+import 'base/file_system.dart';
 import 'base/logger.dart';
 import 'base/utils.dart';
 import 'build_system/targets/icon_tree_shaker.dart';
@@ -29,11 +31,19 @@ class BuildInfo {
     this.dartExperiments = const <String>[],
     @required this.treeShakeIcons,
     this.performanceMeasurementFile,
+    this.packagesPath = '.packages',
+    this.nullSafetyMode = NullSafetyMode.autodetect,
+    this.codeSizeDirectory,
   });
 
   final BuildMode mode;
 
-  /// Whether the build should subdset icon fonts.
+  /// The null safety mode the application should be run in.
+  ///
+  /// If not provided, defaults to [NullSafetyMode.autodetect].
+  final NullSafetyMode nullSafetyMode;
+
+  /// Whether the build should subset icon fonts.
   final bool treeShakeIcons;
 
   /// Represents a custom Android product flavor or an Xcode scheme, null for
@@ -43,6 +53,12 @@ class BuildInfo {
   /// `assemblePaidRelease`), and the Xcode build configuration will be
   /// Mode-Flavor (e.g. Release-Paid).
   final String flavor;
+
+  /// The path to the .packages file to use for compilation.
+  ///
+  /// This is used by package:package_config to locate the actual package_config.json
+  /// file. If not provided, defaults to `.packages`.
+  final String packagesPath;
 
   final List<String> fileSystemRoots;
   final String fileSystemScheme;
@@ -66,7 +82,7 @@ class BuildInfo {
   /// A "x.y.z" string used as the version number shown to users.
   /// For each new version of your app, you will provide a version number to differentiate it from previous versions.
   /// On Android it is used as versionName.
-  /// On Xcode builds it is used as CFBundleShortVersionString,
+  /// On Xcode builds it is used as CFBundleShortVersionString.
   final String buildName;
 
   /// An optional directory path to save debugging information from dwarf stack
@@ -77,7 +93,7 @@ class BuildInfo {
   /// Whether to apply dart source code obfuscation.
   final bool dartObfuscation;
 
-  /// An optional path to a JSON containing object SkSL shaders
+  /// An optional path to a JSON containing object SkSL shaders.
   ///
   /// Currently this is only supported for Android builds.
   final String bundleSkSLPath;
@@ -97,6 +113,10 @@ class BuildInfo {
   /// This is not considered a build input and will not force assemble to
   /// rerun tasks.
   final String performanceMeasurementFile;
+
+  /// If provided, an output directory where one or more v8-style heap snapshots
+  /// will be written for code size profiling.
+  final String codeSizeDirectory;
 
   static const BuildInfo debug = BuildInfo(BuildMode.debug, null, treeShakeIcons: false);
   static const BuildInfo profile = BuildInfo(BuildMode.profile, null, treeShakeIcons: kIconTreeShakerEnabledDefault);
@@ -132,10 +152,14 @@ class BuildInfo {
   String get modeName => getModeName(mode);
   String get friendlyModeName => getFriendlyModeName(mode);
 
-  /// Convert to a structued string encoded structure appropriate for usage as
+  /// the flavor name in the output files is lower-cased (see flutter.gradle),
+  /// so the lower cased flavor name is used to compute the output file name
+  String get lowerCasedFlavor => flavor?.toLowerCase();
+
+  /// Convert to a structured string encoded structure appropriate for usage as
   /// environment variables or to embed in other scripts.
   ///
-  /// Fields that are `null` are excluded from this configration.
+  /// Fields that are `null` are excluded from this configuration.
   Map<String, String> toEnvironmentConfig() {
     return <String, String>{
       if (dartDefines?.isNotEmpty ?? false)
@@ -143,9 +167,9 @@ class BuildInfo {
       if (dartObfuscation != null)
         'DART_OBFUSCATION': dartObfuscation.toString(),
       if (extraFrontEndOptions?.isNotEmpty ?? false)
-        'EXTRA_FRONT_END_OPTIONS': extraFrontEndOptions.join(','),
+        'EXTRA_FRONT_END_OPTIONS': encodeDartDefines(extraFrontEndOptions),
       if (extraGenSnapshotOptions?.isNotEmpty ?? false)
-        'EXTRA_GEN_SNAPSHOT_OPTIONS': extraGenSnapshotOptions.join(','),
+        'EXTRA_GEN_SNAPSHOT_OPTIONS': encodeDartDefines(extraGenSnapshotOptions),
       if (splitDebugInfoPath != null)
         'SPLIT_DEBUG_INFO': splitDebugInfoPath,
       if (trackWidgetCreation != null)
@@ -154,6 +178,12 @@ class BuildInfo {
         'TREE_SHAKE_ICONS': treeShakeIcons.toString(),
       if (performanceMeasurementFile != null)
         'PERFORMANCE_MEASUREMENT_FILE': performanceMeasurementFile,
+      if (bundleSkSLPath != null)
+        'BUNDLE_SKSL_PATH': bundleSkSLPath,
+      if (packagesPath != null)
+        'PACKAGE_CONFIG': packagesPath,
+      if (codeSizeDirectory != null)
+        'CODE_SIZE_DIRECTORY': codeSizeDirectory,
     };
   }
 }
@@ -395,7 +425,7 @@ enum TargetPlatform {
   fuchsia_x64,
   tester,
   web_javascript,
-  // The arch specific android target platforms are soft-depreacted.
+  // The arch specific android target platforms are soft-deprecated.
   // Instead of using TargetPlatform as a combination arch + platform
   // the code will be updated to carry arch information in [DarwinArch]
   // and [AndroidArch].
@@ -595,15 +625,20 @@ HostPlatform getCurrentHostPlatform() {
 }
 
 /// Returns the top-level build output directory.
-String getBuildDirectory() {
+String getBuildDirectory([Config config, FileSystem fileSystem]) {
   // TODO(johnmccutchan): Stop calling this function as part of setting
   // up command line argument processing.
-  if (context == null || globals.config == null) {
+  if (context == null) {
+    return 'build';
+  }
+  final Config localConfig = config ?? globals.config;
+  final FileSystem localFilesystem = fileSystem ?? globals.fs;
+  if (localConfig == null) {
     return 'build';
   }
 
-  final String buildDir = globals.config.getValue('build-dir') as String ?? 'build';
-  if (globals.fs.path.isAbsolute(buildDir)) {
+  final String buildDir = localConfig.getValue('build-dir') as String ?? 'build';
+  if (localFilesystem.path.isAbsolute(buildDir)) {
     throw Exception(
         'build-dir config setting in ${globals.config.configPath} must be relative');
   }
@@ -667,13 +702,20 @@ String encodeDartDefines(List<String> defines) {
 }
 
 /// Dart defines are encoded inside [environmentDefines] as a comma-separated list.
-List<String> decodeDartDefines(Map<String, String> environmentDefines) {
-  if (!environmentDefines.containsKey(kDartDefines) || environmentDefines[kDartDefines].isEmpty) {
-    return const <String>[];
+List<String> decodeDartDefines(Map<String, String> environmentDefines, String key) {
+  if (!environmentDefines.containsKey(key) || environmentDefines[key].isEmpty) {
+    return <String>[];
   }
-  return environmentDefines[kDartDefines]
+  return environmentDefines[key]
     .split(',')
     .map<Object>(Uri.decodeComponent)
     .cast<String>()
     .toList();
+}
+
+/// The null safety runtime mode the app should be built in.
+enum NullSafetyMode {
+  sound,
+  unsound,
+  autodetect,
 }

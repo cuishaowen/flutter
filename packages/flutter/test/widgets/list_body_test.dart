@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @dart = 2.8
+
 import 'package:flutter/src/foundation/assertions.dart';
 import 'package:flutter/src/painting/basic_types.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -132,7 +134,7 @@ void main() {
     }
     expect(errors, isNotEmpty);
     expect(errors.first.exception, isFlutterError);
-    expect(errors.first.exception.toStringDeep(), equalsIgnoringHashCodes(
+    expect((errors.first.exception as FlutterError).toStringDeep(), equalsIgnoringHashCodes(
       'FlutterError\n'
       '   RenderListBody must have unlimited space along its main axis.\n'
       '   RenderListBody does not clip or resize its children, so it must\n'
@@ -181,7 +183,7 @@ void main() {
     }
     expect(errors, isNotEmpty);
     expect(errors.first.exception, isFlutterError);
-    expect(errors.first.exception.toStringDeep(), equalsIgnoringHashCodes(
+    expect((errors.first.exception as FlutterError).toStringDeep(), equalsIgnoringHashCodes(
       'FlutterError\n'
       '   RenderListBody must have a bounded constraint for its cross axis.\n'
       '   RenderListBody forces its children to expand to fit the\n'

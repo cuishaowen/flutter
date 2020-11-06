@@ -296,8 +296,8 @@ void main() {
   });
 
   testWidgets('Determinate CircularProgressIndicator stops the animator', (WidgetTester tester) async {
-    double progressValue;
-    StateSetter setState;
+    double? progressValue;
+    late StateSetter setState;
     await tester.pumpWidget(
       Directionality(
         textDirection: TextDirection.ltr,
@@ -344,7 +344,7 @@ void main() {
     expect(tester.binding.transientCallbackCount, 0);
   });
 
-  testWidgets('LinearProgressIndicator with a height less than the minumum', (WidgetTester tester) async {
+  testWidgets('LinearProgressIndicator with a height less than the minimum', (WidgetTester tester) async {
     await tester.pumpWidget(
       const Directionality(
         textDirection: TextDirection.ltr,
@@ -553,5 +553,5 @@ void main() {
       find.byWidget(display),
       matchesGoldenFile('material.circular_progress_indicator.indeterminate.png'),
     );
-  }, skip: isBrowser);
+  }, skip: isBrowser); // https://github.com/flutter/flutter/issues/42767
 }

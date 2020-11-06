@@ -3,31 +3,34 @@
 // found in the LICENSE file.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'feedback_tester.dart';
 
 void main() {
-  DateTime firstDate;
-  DateTime lastDate;
-  DateTimeRange initialDateRange;
-  DatePickerEntryMode initialEntryMode = DatePickerEntryMode.calendar;
+  late DateTime firstDate;
+  late DateTime lastDate;
+  late DateTime? currentDate;
+  late DateTimeRange? initialDateRange;
+  late DatePickerEntryMode initialEntryMode = DatePickerEntryMode.calendar;
 
-  String cancelText;
-  String confirmText;
-  String errorInvalidRangeText;
-  String errorFormatText;
-  String errorInvalidText;
-  String fieldStartHintText;
-  String fieldEndHintText;
-  String fieldStartLabelText;
-  String fieldEndLabelText;
-  String helpText;
-  String saveText;
+  String? cancelText;
+  String? confirmText;
+  String? errorInvalidRangeText;
+  String? errorFormatText;
+  String? errorInvalidText;
+  String? fieldStartHintText;
+  String? fieldEndHintText;
+  String? fieldStartLabelText;
+  String? fieldEndLabelText;
+  String? helpText;
+  String? saveText;
 
   setUp(() {
     firstDate = DateTime(2015, DateTime.january, 1);
     lastDate = DateTime(2016, DateTime.december, 31);
+    currentDate = null;
     initialDateRange = DateTimeRange(
       start: DateTime(2016, DateTime.january, 15),
       end: DateTime(2016, DateTime.january, 25),
@@ -47,13 +50,17 @@ void main() {
     saveText = null;
   });
 
-  Future<void> preparePicker(WidgetTester tester, Future<void> callback(Future<DateTimeRange> date)) async {
-    BuildContext buttonContext;
+  Future<void> preparePicker(
+    WidgetTester tester,
+    Future<void> callback(Future<DateTimeRange> date),
+    { TextDirection textDirection = TextDirection.ltr }
+  ) async {
+    late BuildContext buttonContext;
     await tester.pumpWidget(MaterialApp(
       home: Material(
         child: Builder(
           builder: (BuildContext context) {
-            return RaisedButton(
+            return ElevatedButton(
               onPressed: () {
                 buttonContext = context;
               },
@@ -72,6 +79,7 @@ void main() {
       initialDateRange: initialDateRange,
       firstDate: firstDate,
       lastDate: lastDate,
+      currentDate: currentDate,
       initialEntryMode: initialEntryMode,
       cancelText: cancelText,
       confirmText: confirmText,
@@ -84,6 +92,12 @@ void main() {
       fieldEndLabelText: fieldEndLabelText,
       helpText: helpText,
       saveText: saveText,
+      builder: (BuildContext context, Widget? child) {
+        return Directionality(
+          textDirection: textDirection,
+          child: child ?? const SizedBox(),
+        );
+      },
     );
 
     await tester.pumpAndSettle(const Duration(seconds: 1));
@@ -94,8 +108,8 @@ void main() {
     helpText = 'help';
     saveText = 'make it so';
     await preparePicker(tester, (Future<DateTimeRange> range) async {
-      expect(find.text(helpText), findsOneWidget);
-      expect(find.text(saveText), findsOneWidget);
+      expect(find.text(helpText!), findsOneWidget);
+      expect(find.text(saveText!), findsOneWidget);
     });
   });
 
@@ -106,6 +120,52 @@ void main() {
         start: DateTime(2016, DateTime.january, 15),
         end: DateTime(2016, DateTime.january, 25)
       ));
+    });
+  });
+
+  testWidgets('Last month header should be visible if last date is selected',
+      (WidgetTester tester) async {
+    firstDate = DateTime(2015, DateTime.january, 1);
+    lastDate = DateTime(2016, DateTime.december, 31);
+    initialDateRange = DateTimeRange(
+      start: lastDate,
+      end: lastDate,
+    );
+    await preparePicker(tester, (Future<DateTimeRange> range) async {
+      // December header should be showing, but no November
+      expect(find.text('December 2016'), findsOneWidget);
+      expect(find.text('November 2016'), findsNothing);
+    });
+  });
+
+  testWidgets('First month header should be visible if first date is selected',
+      (WidgetTester tester) async {
+    firstDate = DateTime(2015, DateTime.january, 1);
+    lastDate = DateTime(2016, DateTime.december, 31);
+    initialDateRange = DateTimeRange(
+      start: firstDate,
+      end: firstDate,
+    );
+    await preparePicker(tester, (Future<DateTimeRange> range) async {
+      // January and February headers should be showing, but no March
+      expect(find.text('January 2015'), findsOneWidget);
+      expect(find.text('February 2015'), findsOneWidget);
+      expect(find.text('March 2015'), findsNothing);
+    });
+  });
+
+  testWidgets('Current month header should be visible if no date is selected',
+      (WidgetTester tester) async {
+    firstDate = DateTime(2015, DateTime.january, 1);
+    lastDate = DateTime(2016, DateTime.december, 31);
+    currentDate = DateTime(2016, DateTime.september, 1);
+    initialDateRange = null;
+
+    await preparePicker(tester, (Future<DateTimeRange> range) async {
+      // September and October headers should be showing, but no August
+      expect(find.text('September 2016'), findsOneWidget);
+      expect(find.text('October 2016'), findsOneWidget);
+      expect(find.text('August 2016'), findsNothing);
     });
   });
 
@@ -194,9 +254,111 @@ void main() {
     });
   });
 
+  group('Toggle from input entry mode validates dates', () {
+    setUp(() {
+      initialEntryMode = DatePickerEntryMode.input;
+    });
+
+    testWidgets('Invalid start date', (WidgetTester tester) async {
+      // Invalid start date should have neither a start nor end date selected in
+      // calendar mode
+      await preparePicker(tester, (Future<DateTimeRange> range) async {
+        await tester.enterText(find.byType(TextField).at(0), '12/27/1918');
+        await tester.enterText(find.byType(TextField).at(1), '12/25/2016');
+        await tester.tap(find.byIcon(Icons.calendar_today));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Start Date'), findsOneWidget);
+        expect(find.text('End Date'), findsOneWidget);
+      });
+    });
+
+    testWidgets('Invalid end date', (WidgetTester tester) async {
+      // Invalid end date should only have a start date selected
+      await preparePicker(tester, (Future<DateTimeRange> range) async {
+        await tester.enterText(find.byType(TextField).at(0), '12/24/2016');
+        await tester.enterText(find.byType(TextField).at(1), '12/25/2050');
+        await tester.tap(find.byIcon(Icons.calendar_today));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Dec 24'), findsOneWidget);
+        expect(find.text('End Date'), findsOneWidget);
+      });
+    });
+
+    testWidgets('Invalid range', (WidgetTester tester) async {
+      // Start date after end date should just use the start date
+      await preparePicker(tester, (Future<DateTimeRange> range) async {
+        await tester.enterText(find.byType(TextField).at(0), '12/25/2016');
+        await tester.enterText(find.byType(TextField).at(1), '12/24/2016');
+        await tester.tap(find.byIcon(Icons.calendar_today));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Dec 25'), findsOneWidget);
+        expect(find.text('End Date'), findsOneWidget);
+      });
+    });
+  });
+
+  testWidgets('OK Cancel button layout', (WidgetTester tester) async {
+     Widget buildFrame(TextDirection textDirection) {
+       return MaterialApp(
+         home: Material(
+           child: Center(
+             child: Builder(
+               builder: (BuildContext context) {
+                 return ElevatedButton(
+                   child: const Text('X'),
+                   onPressed: () {
+                     showDateRangePicker(
+                       context: context,
+                       firstDate:DateTime(2001, DateTime.january, 1),
+                       lastDate: DateTime(2031, DateTime.december, 31),
+                       builder: (BuildContext context, Widget? child) {
+                         return Directionality(
+                           textDirection: textDirection,
+                           child: child ?? const SizedBox(),
+                         );
+                       },
+                     );
+                   },
+                 );
+               },
+             ),
+           ),
+         ),
+       );
+     }
+
+    Future<void> showOkCancelDialog(TextDirection textDirection) async {
+      await tester.pumpWidget(buildFrame(textDirection));
+      await tester.tap(find.text('X'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.edit));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> dismissOkCancelDialog() async {
+      await tester.tap(find.text('CANCEL'));
+      await tester.pumpAndSettle();
+    }
+
+    await showOkCancelDialog(TextDirection.ltr);
+    expect(tester.getBottomRight(find.text('OK')).dx, 622);
+    expect(tester.getBottomLeft(find.text('OK')).dx, 594);
+    expect(tester.getBottomRight(find.text('CANCEL')).dx, 560);
+    await dismissOkCancelDialog();
+
+    await showOkCancelDialog(TextDirection.rtl);
+    expect(tester.getBottomRight(find.text('OK')).dx, 206);
+    expect(tester.getBottomLeft(find.text('OK')).dx, 178);
+    expect(tester.getBottomRight(find.text('CANCEL')).dx, 324);
+    await dismissOkCancelDialog();
+  });
+
   group('Haptic feedback', () {
     const Duration hapticFeedbackInterval = Duration(milliseconds: 10);
-    FeedbackTester feedback;
+    late FeedbackTester feedback;
 
     setUp(() {
       feedback = FeedbackTester();
@@ -209,7 +371,7 @@ void main() {
     });
 
     tearDown(() {
-      feedback?.dispose();
+      feedback.dispose();
     });
 
     testWidgets('Selecting dates vibrates', (WidgetTester tester) async {
@@ -232,6 +394,186 @@ void main() {
         await tester.pump(hapticFeedbackInterval);
         expect(feedback.hapticCount, 0);
       });
+    });
+  });
+
+  group('Keyboard navigation', () {
+    testWidgets('Can toggle to calendar entry mode', (WidgetTester tester) async {
+      await preparePicker(tester, (Future<DateTimeRange> range) async {
+        expect(find.byType(TextField), findsNothing);
+        // Navigate to the entry toggle button and activate it
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        await tester.pumpAndSettle();
+        // Should be in the input mode
+        expect(find.byType(TextField), findsNWidgets(2));
+      });
+    });
+
+    testWidgets('Can navigate date grid with arrow keys', (WidgetTester tester) async {
+      await preparePicker(tester, (Future<DateTimeRange> range) async {
+        // Navigate to the grid
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pumpAndSettle();
+
+        // Navigate from Jan 15 to Jan 18 with arrow keys
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+        await tester.pumpAndSettle();
+
+        // Activate it to select the beginning of the range
+        await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        await tester.pumpAndSettle();
+
+        // Navigate to Jan 29
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.pumpAndSettle();
+
+        // Activate it to select the end of the range
+        await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        await tester.pumpAndSettle();
+
+        // Navigate out of the grid and to the OK button
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+
+        // Activate OK
+        await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        await tester.pumpAndSettle();
+
+        // Should have selected Jan 18 - Jan 29
+        expect(await range, DateTimeRange(
+          start: DateTime(2016, DateTime.january, 18),
+          end: DateTime(2016, DateTime.january, 29),
+        ));
+      });
+    });
+
+    testWidgets('Navigating with arrow keys scrolls as needed', (WidgetTester tester) async {
+      await preparePicker(tester, (Future<DateTimeRange> range) async {
+        // Jan and Feb headers should be showing, but no March
+        expect(find.text('January 2016'), findsOneWidget);
+        expect(find.text('February 2016'), findsOneWidget);
+        expect(find.text('March 2016'), findsNothing);
+
+        // Navigate to the grid
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+
+        // Navigate from Jan 15 to Jan 18 with arrow keys
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pumpAndSettle();
+
+        // Activate it to select the beginning of the range
+        await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        await tester.pumpAndSettle();
+
+        // Navigate to Mar 17
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.pumpAndSettle();
+
+        // Jan should have scrolled off, Mar should be visible
+        expect(find.text('January 2016'), findsNothing);
+        expect(find.text('February 2016'), findsOneWidget);
+        expect(find.text('March 2016'), findsOneWidget);
+
+        // Activate it to select the end of the range
+        await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        await tester.pumpAndSettle();
+
+        // Navigate out of the grid and to the OK button
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+
+        // Activate OK
+        await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        await tester.pumpAndSettle();
+
+        // Should have selected Jan 18 - Mar 17
+        expect(await range, DateTimeRange(
+          start: DateTime(2016, DateTime.january, 18),
+          end: DateTime(2016, DateTime.march, 17),
+        ));
+      });
+    });
+
+    testWidgets('RTL text direction reverses the horizontal arrow key navigation', (WidgetTester tester) async {
+      await preparePicker(tester, (Future<DateTimeRange> range) async {
+        // Navigate to the grid
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+
+        // Navigate from Jan 15 to 19 with arrow keys
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+        await tester.pumpAndSettle();
+
+        // Activate it
+        await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        await tester.pumpAndSettle();
+
+        // Navigate to Jan 21
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+        await tester.pumpAndSettle();
+
+        // Activate it
+        await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        await tester.pumpAndSettle();
+
+        // Navigate out of the grid and to the OK button
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+
+        // Activate OK
+        await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        await tester.pumpAndSettle();
+
+        // Should have selected Jan 19 - Mar 21
+        expect(await range, DateTimeRange(
+          start: DateTime(2016, DateTime.january, 19),
+          end: DateTime(2016, DateTime.january, 21),
+        ));
+      },
+      textDirection: TextDirection.rtl);
     });
   });
 
@@ -262,13 +604,13 @@ void main() {
       fieldEndLabelText = 'label2';
       helpText = 'help';
       await preparePicker(tester, (Future<DateTimeRange> range) async {
-        expect(find.text(cancelText), findsOneWidget);
-        expect(find.text(confirmText), findsOneWidget);
-        expect(find.text(fieldStartHintText), findsOneWidget);
-        expect(find.text(fieldEndHintText), findsOneWidget);
-        expect(find.text(fieldStartLabelText), findsOneWidget);
-        expect(find.text(fieldEndLabelText), findsOneWidget);
-        expect(find.text(helpText), findsOneWidget);
+        expect(find.text(cancelText!), findsOneWidget);
+        expect(find.text(confirmText!), findsOneWidget);
+        expect(find.text(fieldStartHintText!), findsOneWidget);
+        expect(find.text(fieldEndHintText!), findsOneWidget);
+        expect(find.text(fieldStartLabelText!), findsOneWidget);
+        expect(find.text(fieldEndLabelText!), findsOneWidget);
+        expect(find.text(helpText!), findsOneWidget);
       });
     });
 
@@ -327,11 +669,11 @@ void main() {
       await preparePicker(tester, (Future<DateTimeRange> range) async {
         await tester.enterText(find.byType(TextField).at(0), '12/25');
         await tester.enterText(find.byType(TextField).at(1), '12/25');
-        expect(find.text(errorFormatText), findsNothing);
+        expect(find.text(errorFormatText!), findsNothing);
 
         await tester.tap(find.text('OK'));
         await tester.pumpAndSettle();
-        expect(find.text(errorFormatText), findsNWidgets(2));
+        expect(find.text(errorFormatText!), findsNWidgets(2));
       });
     });
 
@@ -341,11 +683,11 @@ void main() {
       await preparePicker(tester, (Future<DateTimeRange> range) async {
         await tester.enterText(find.byType(TextField).at(0), '20202014');
         await tester.enterText(find.byType(TextField).at(1), '20212014');
-        expect(find.text(errorFormatText), findsNothing);
+        expect(find.text(errorFormatText!), findsNothing);
 
         await tester.tap(find.text('OK'));
         await tester.pumpAndSettle();
-        expect(find.text(errorFormatText), findsNWidgets(2));
+        expect(find.text(errorFormatText!), findsNWidgets(2));
       });
     });
 
@@ -355,11 +697,11 @@ void main() {
       await preparePicker(tester, (Future<DateTimeRange> range) async {
         await tester.enterText(find.byType(TextField).at(0), '08/08/2014');
         await tester.enterText(find.byType(TextField).at(1), '08/08/2014');
-        expect(find.text(errorInvalidText), findsNothing);
+        expect(find.text(errorInvalidText!), findsNothing);
 
         await tester.tap(find.text('OK'));
         await tester.pumpAndSettle();
-        expect(find.text(errorInvalidText), findsNWidgets(2));
+        expect(find.text(errorInvalidText!), findsNWidgets(2));
       });
     });
 
@@ -369,11 +711,11 @@ void main() {
       await preparePicker(tester, (Future<DateTimeRange> range) async {
         await tester.enterText(find.byType(TextField).at(0), '12/27/2016');
         await tester.enterText(find.byType(TextField).at(1), '12/25/2016');
-        expect(find.text(errorInvalidRangeText), findsNothing);
+        expect(find.text(errorInvalidRangeText!), findsNothing);
 
         await tester.tap(find.text('OK'));
         await tester.pumpAndSettle();
-        expect(find.text(errorInvalidRangeText), findsOneWidget);
+        expect(find.text(errorInvalidRangeText!), findsOneWidget);
       });
     });
 
@@ -383,11 +725,11 @@ void main() {
       await preparePicker(tester, (Future<DateTimeRange> range) async {
         await tester.enterText(find.byType(TextField).at(0), '12/27/2016');
         await tester.enterText(find.byType(TextField).at(1), '01/01/2018');
-        expect(find.text(errorInvalidText), findsNothing);
+        expect(find.text(errorInvalidText!), findsNothing);
 
         await tester.tap(find.text('OK'));
         await tester.pumpAndSettle();
-        expect(find.text(errorInvalidText), findsOneWidget);
+        expect(find.text(errorInvalidText!), findsOneWidget);
       });
     });
 
@@ -424,7 +766,7 @@ void main() {
         expect(containerColor, equals(expectedContainerColor));
       }
 
-      BuildContext buttonContext;
+      late BuildContext buttonContext;
       const InputBorder border = InputBorder.none;
       await tester.pumpWidget(MaterialApp(
         theme: ThemeData.light().copyWith(
@@ -436,7 +778,7 @@ void main() {
         home: Material(
           child: Builder(
             builder: (BuildContext context) {
-              return RaisedButton(
+              return ElevatedButton(
                 onPressed: () {
                   buttonContext = context;
                 },

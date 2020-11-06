@@ -2,9 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
-
 import 'package:meta/meta.dart';
+import 'package:package_config/package_config.dart';
 import 'package:process/process.dart';
 
 import '../base/bot_detector.dart';
@@ -16,6 +15,7 @@ import '../base/logger.dart';
 import '../base/platform.dart';
 import '../base/process.dart';
 import '../cache.dart';
+import '../dart/package_map.dart';
 import '../reporting/reporting.dart';
 
 /// The [Pub] instance.
@@ -39,7 +39,7 @@ class PubContext {
     for (final String item in _values) {
       if (!_validContext.hasMatch(item)) {
         throw ArgumentError.value(
-            _values, 'value', 'Must match RegExp ${_validContext.pattern}');
+          _values, 'value', 'Must match RegExp ${_validContext.pattern}');
       }
     }
   }
@@ -80,6 +80,7 @@ abstract class Pub {
     @required Platform platform,
     @required BotDetector botDetector,
     @required Usage usage,
+    File Function() toolStampFile,
   }) = _DefaultPub;
 
   /// Runs `pub get`.
@@ -94,6 +95,7 @@ abstract class Pub {
     bool offline = false,
     bool checkLastModified = true,
     bool skipPubspecYamlCheck = false,
+    bool generateSyntheticPackage = false,
     String flutterRootOverride,
   });
 
@@ -139,7 +141,9 @@ class _DefaultPub implements Pub {
     @required Platform platform,
     @required BotDetector botDetector,
     @required Usage usage,
-  }) : _fileSystem = fileSystem,
+   File Function() toolStampFile,
+  }) : _toolStampFile = toolStampFile,
+       _fileSystem = fileSystem,
        _logger = logger,
        _platform = platform,
        _botDetector = botDetector,
@@ -155,6 +159,7 @@ class _DefaultPub implements Pub {
   final Platform _platform;
   final BotDetector _botDetector;
   final Usage _usage;
+  final File Function() _toolStampFile;
 
   @override
   Future<void> get({
@@ -165,6 +170,7 @@ class _DefaultPub implements Pub {
     bool offline = false,
     bool checkLastModified = true,
     bool skipPubspecYamlCheck = false,
+    bool generateSyntheticPackage = false,
     String flutterRootOverride,
   }) async {
     directory ??= _fileSystem.currentDirectory.path;
@@ -173,6 +179,8 @@ class _DefaultPub implements Pub {
       _fileSystem.path.join(directory, 'pubspec.yaml'));
     final File packageConfigFile = _fileSystem.file(
       _fileSystem.path.join(directory, '.dart_tool', 'package_config.json'));
+    final Directory generatedDirectory = _fileSystem.directory(
+      _fileSystem.path.join(directory, '.dart_tool', 'flutter_gen'));
 
     if (!skipPubspecYamlCheck && !pubSpecYaml.existsSync()) {
       if (!skipIfAbsent) {
@@ -242,6 +250,11 @@ class _DefaultPub implements Pub {
         'The time now is: $now'
       );
     }
+    await _updatePackageConfig(
+      packageConfigFile,
+      generatedDirectory,
+      generateSyntheticPackage,
+    );
   }
 
   @override
@@ -328,7 +341,6 @@ class _DefaultPub implements Pub {
     String directory,
     @required io.Stdio stdio,
   }) async {
-    Cache.releaseLockEarly();
     final io.Process process = await _processUtils.start(
       _pubCommand(arguments),
       workingDirectory: directory,
@@ -388,6 +400,12 @@ class _DefaultPub implements Pub {
     if (pubSpecYaml.lastModifiedSync().isAfter(dotPackagesLastModified)) {
       return true;
     }
+    final File toolStampFile = _toolStampFile != null ? _toolStampFile() : null;
+    if (toolStampFile != null &&
+        toolStampFile.existsSync() &&
+        toolStampFile.lastModifiedSync().isAfter(dotPackagesLastModified)) {
+      return true;
+    }
     return false;
   }
 
@@ -439,5 +457,64 @@ class _DefaultPub implements Pub {
       environment[_kPubCacheEnvironmentKey] = pubCache;
     }
     return environment;
+  }
+
+  /// Update the package configuration file.
+  ///
+  /// Creates a corresponding `package_config_subset` file that is used by the build
+  /// system to avoid rebuilds caused by an updated pub timestamp.
+  ///
+  /// if [generateSyntheticPackage] is true then insert flutter_gen synthetic
+  /// package into the package configuration. This is used by the l10n localization
+  /// tooling to insert a new reference into the package_config file, allowing the import
+  /// of a package URI that is not specified in the pubspec.yaml
+  ///
+  /// For more information, see:
+  ///   * [generateLocalizations], `in lib/src/localizations/gen_l10n.dart`
+  Future<void> _updatePackageConfig(
+    File packageConfigFile,
+    Directory generatedDirectory,
+    bool generateSyntheticPackage,
+  ) async {
+    final PackageConfig packageConfig = await loadPackageConfigWithLogging(packageConfigFile, logger: _logger);
+
+    packageConfigFile.parent
+      .childFile('package_config_subset')
+      .writeAsStringSync(_computePackageConfigSubset(
+        packageConfig,
+        _fileSystem,
+      ));
+
+    if (!generateSyntheticPackage) {
+      return;
+    }
+    final Package flutterGen = Package('flutter_gen', generatedDirectory.uri, languageVersion: LanguageVersion(2, 8));
+    if (packageConfig.packages.any((Package package) => package.name == 'flutter_gen')) {
+      return;
+    }
+    final PackageConfig newPackageConfig = PackageConfig(
+      <Package>[
+        ...packageConfig.packages,
+        flutterGen,
+      ],
+    );
+    // There is no current API for saving a package_config without hitting the real filesystem.
+    if (packageConfigFile.fileSystem is LocalFileSystem) {
+      await savePackageConfig(newPackageConfig, packageConfigFile.parent.parent);
+    }
+  }
+
+  // Subset the package config file to only the parts that are relevant for
+  // rerunning the dart compiler.
+  String _computePackageConfigSubset(PackageConfig packageConfig, FileSystem fileSystem) {
+    final StringBuffer buffer = StringBuffer();
+    for (final Package package in packageConfig.packages) {
+      buffer.writeln(package.name);
+      buffer.writeln(package.languageVersion);
+      buffer.writeln(package.root);
+      buffer.writeln(package.packageUriRoot);
+    }
+    buffer.writeln(packageConfig.version);
+    return buffer.toString();
   }
 }

@@ -2,27 +2,22 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
-
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:completion/completion.dart';
 import 'package:file/file.dart';
 import 'package:meta/meta.dart';
-import 'package:package_config/package_config.dart';
 
 import '../artifacts.dart';
 import '../base/common.dart';
 import '../base/context.dart';
 import '../base/file_system.dart';
-import '../base/logger.dart';
 import '../base/terminal.dart';
 import '../base/user_messages.dart';
 import '../base/utils.dart';
 import '../cache.dart';
 import '../convert.dart';
 import '../dart/package_map.dart';
-import '../device.dart';
 import '../globals.dart' as globals;
 import '../tester/flutter_tester.dart';
 
@@ -236,12 +231,6 @@ class FlutterCommandRunner extends CommandRunner<void> {
   Future<void> runCommand(ArgResults topLevelResults) async {
     final Map<Type, dynamic> contextOverrides = <Type, dynamic>{};
 
-    // Check for verbose.
-    if (topLevelResults['verbose'] as bool) {
-      // Override the logger.
-      contextOverrides[Logger] = VerboseLogger(globals.logger);
-    }
-
     // Don't set wrapColumns unless the user said to: if it's set, then all
     // wrapping will occur at this width explicitly, and won't adapt if the
     // terminal size changes during a run.
@@ -279,10 +268,13 @@ class FlutterCommandRunner extends CommandRunner<void> {
     Cache.flutterRoot = globals.fs.path.normalize(globals.fs.path.absolute(flutterRoot));
 
     // Set up the tooling configuration.
-    final String enginePath = await _findEnginePath(topLevelResults);
-    if (enginePath != null) {
+    final EngineBuildPaths engineBuildPaths = await globals.localEngineLocator.findEnginePath(
+      topLevelResults['local-engine-src-path'] as String,
+      topLevelResults['local-engine'] as String
+    );
+    if (engineBuildPaths != null) {
       contextOverrides.addAll(<Type, dynamic>{
-        Artifacts: Artifacts.getLocalEngine(_findEngineBuildPath(topLevelResults, enginePath)),
+        Artifacts: Artifacts.getLocalEngine(engineBuildPaths),
       });
     }
 
@@ -318,14 +310,18 @@ class FlutterCommandRunner extends CommandRunner<void> {
         }
 
         // See if the user specified a specific device.
-        deviceManager.specifiedDeviceId = topLevelResults['device-id'] as String;
+        globals.deviceManager.specifiedDeviceId = topLevelResults['device-id'] as String;
 
         if (topLevelResults['version'] as bool) {
           globals.flutterUsage.sendCommand('version');
           globals.flutterVersion.fetchTagsAndUpdate();
           String status;
           if (machineFlag) {
-            status = const JsonEncoder.withIndent('  ').convert(globals.flutterVersion.toJson());
+            final Map<String, Object> jsonOut = globals.flutterVersion.toJson();
+            if (jsonOut != null) {
+              jsonOut['flutterRoot'] = Cache.flutterRoot;
+            }
+            status = const JsonEncoder.withIndent('  ').convert(jsonOut);
           } else {
             status = globals.flutterVersion.toString();
           }
@@ -339,92 +335,6 @@ class FlutterCommandRunner extends CommandRunner<void> {
         await super.runCommand(topLevelResults);
       },
     );
-  }
-
-  String _tryEnginePath(String enginePath) {
-    if (globals.fs.isDirectorySync(globals.fs.path.join(enginePath, 'out'))) {
-      return enginePath;
-    }
-    return null;
-  }
-
-  Future<String> _findEnginePath(ArgResults globalResults) async {
-    String engineSourcePath = globalResults['local-engine-src-path'] as String
-      ?? globals.platform.environment[kFlutterEngineEnvironmentVariableName];
-
-    if (engineSourcePath == null && globalResults['local-engine'] != null) {
-      try {
-        final PackageConfig packageConfig = await loadPackageConfigWithLogging(
-          globals.fs.file(globalPackagesPath),
-          logger: globals.logger,
-          throwOnError: false,
-        );
-        Uri engineUri = packageConfig[kFlutterEnginePackageName]?.packageUriRoot;
-        // Skip if sky_engine is the self-contained one.
-        if (engineUri != null && globals.fs.identicalSync(globals.fs.path.join(Cache.flutterRoot, 'bin', 'cache', 'pkg', kFlutterEnginePackageName, 'lib'), engineUri.path)) {
-          engineUri = null;
-        }
-        // If sky_engine is specified and the engineSourcePath not set, try to determine the engineSourcePath by sky_engine setting.
-        // A typical engineUri looks like: file://flutter-engine-local-path/src/out/host_debug_unopt/gen/dart-pkg/sky_engine/lib/
-        if (engineUri?.path != null) {
-          engineSourcePath = globals.fs.directory(engineUri.path)?.parent?.parent?.parent?.parent?.parent?.parent?.path;
-          if (engineSourcePath != null && (engineSourcePath == globals.fs.path.dirname(engineSourcePath) || engineSourcePath.isEmpty)) {
-            engineSourcePath = null;
-            throwToolExit(userMessages.runnerNoEngineSrcDir(kFlutterEnginePackageName, kFlutterEngineEnvironmentVariableName),
-              exitCode: 2);
-          }
-        }
-      } on FileSystemException {
-        engineSourcePath = null;
-      } on FormatException {
-        engineSourcePath = null;
-      }
-      // If engineSourcePath is still not set, try to determine it by flutter root.
-      engineSourcePath ??= _tryEnginePath(globals.fs.path.join(globals.fs.directory(Cache.flutterRoot).parent.path, 'engine', 'src'));
-    }
-
-    if (engineSourcePath != null && _tryEnginePath(engineSourcePath) == null) {
-      throwToolExit(userMessages.runnerNoEngineBuildDirInPath(engineSourcePath),
-        exitCode: 2);
-    }
-
-    return engineSourcePath;
-  }
-
-  String _getHostEngineBasename(String localEngineBasename) {
-    // Determine the host engine directory associated with the local engine:
-    // Strip '_sim_' since there are no host simulator builds.
-    String tmpBasename = localEngineBasename.replaceFirst('_sim_', '_');
-    tmpBasename = tmpBasename.substring(tmpBasename.indexOf('_') + 1);
-    // Strip suffix for various archs.
-    final List<String> suffixes = <String>['_arm', '_arm64', '_x86', '_x64'];
-    for (final String suffix in suffixes) {
-      tmpBasename = tmpBasename.replaceFirst(RegExp('$suffix\$'), '');
-    }
-    return 'host_' + tmpBasename;
-  }
-
-  EngineBuildPaths _findEngineBuildPath(ArgResults globalResults, String enginePath) {
-    String localEngine;
-    if (globalResults['local-engine'] != null) {
-      localEngine = globalResults['local-engine'] as String;
-    } else {
-      throwToolExit(userMessages.runnerLocalEngineRequired, exitCode: 2);
-    }
-
-    final String engineBuildPath = globals.fs.path.normalize(globals.fs.path.join(enginePath, 'out', localEngine));
-    if (!globals.fs.isDirectorySync(engineBuildPath)) {
-      throwToolExit(userMessages.runnerNoEngineBuild(engineBuildPath), exitCode: 2);
-    }
-
-    final String basename = globals.fs.path.basename(engineBuildPath);
-    final String hostBasename = _getHostEngineBasename(basename);
-    final String engineHostBuildPath = globals.fs.path.normalize(globals.fs.path.join(globals.fs.path.dirname(engineBuildPath), hostBasename));
-    if (!globals.fs.isDirectorySync(engineHostBuildPath)) {
-      throwToolExit(userMessages.runnerNoEngineBuild(engineHostBuildPath), exitCode: 2);
-    }
-
-    return EngineBuildPaths(targetEngine: engineBuildPath, hostEngine: engineHostBuildPath);
   }
 
   @visibleForTesting

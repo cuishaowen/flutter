@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
-
 import 'package:coverage/coverage.dart' as coverage;
 import 'package:vm_service/vm_service.dart' as vm_service;
 
@@ -66,7 +64,11 @@ class CoverageCollector extends TestWatcher {
     assert(data != null);
 
     _logMessage('($observatoryUri): collected coverage data; merging...');
-    _addHitmap(coverage.createHitmap(data['coverage'] as List<Map<String, dynamic>>));
+    _addHitmap(await coverage.createHitmap(
+      data['coverage'] as List<Map<String, dynamic>>,
+      packagesPath: globalPackagesPath,
+      checkIgnoredLines: true,
+    ));
     _logMessage('($observatoryUri): done merging coverage data into global coverage map.');
   }
 
@@ -98,7 +100,11 @@ class CoverageCollector extends TestWatcher {
     assert(data != null);
 
     _logMessage('pid $pid ($observatoryUri): collected coverage data; merging...');
-    _addHitmap(coverage.createHitmap(data['coverage'] as List<Map<String, dynamic>>));
+    _addHitmap(await coverage.createHitmap(
+      data['coverage'] as List<Map<String, dynamic>>,
+      packagesPath: globalPackagesPath,
+      checkIgnoredLines: true,
+    ));
     _logMessage('pid $pid ($observatoryUri): done merging coverage data into global coverage map.');
   }
 
@@ -273,7 +279,7 @@ void _buildCoverageMap(
       final List<int> hits = (coverage['hits'] as List<dynamic>).cast<int>();
       final List<int> misses = (coverage['misses'] as List<dynamic>).cast<int>();
       final List<dynamic> tokenPositions = scripts[scriptRef['id']]['tokenPosTable'] as List<dynamic>;
-      // The token positions can be null if the script has no coverable lines.
+      // The token positions can be null if the script has no lines that may be covered.
       if (tokenPositions == null) {
         continue;
       }

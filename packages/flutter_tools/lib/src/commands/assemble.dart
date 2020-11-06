@@ -11,7 +11,7 @@ import '../build_system/build_system.dart';
 import '../build_system/depfile.dart';
 import '../build_system/targets/android.dart';
 import '../build_system/targets/assets.dart';
-import '../build_system/targets/dart.dart';
+import '../build_system/targets/common.dart';
 import '../build_system/targets/ios.dart';
 import '../build_system/targets/linux.dart';
 import '../build_system/targets/macos.dart';
@@ -49,7 +49,6 @@ const List<Target> _kDefaultTargets = <Target>[
   CopyFlutterBundle(),
   // Android targets,
   DebugAndroidApplication(),
-  FastStartAndroidApplication(),
   ProfileAndroidApplication(),
   // Android ABI specific AOT rules.
   androidArmProfileBundle,
@@ -105,6 +104,7 @@ class AssembleCommand extends FlutterCommand {
         'root of the current Flutter project.',
     );
     argParser.addOption(kExtraGenSnapshotOptions);
+    argParser.addOption(kExtraFrontEndOptions);
     argParser.addOption(kDartDefines);
     argParser.addOption(
       'resource-pool-size',
@@ -113,22 +113,22 @@ class AssembleCommand extends FlutterCommand {
   }
 
   @override
-  String get description => 'Assemble and build flutter resources.';
+  String get description => 'Assemble and build Flutter resources.';
 
   @override
   String get name => 'assemble';
 
   @override
   Future<Map<CustomDimensions, String>> get usageValues async {
-    final FlutterProject futterProject = FlutterProject.current();
-    if (futterProject == null) {
+    final FlutterProject flutterProject = FlutterProject.current();
+    if (flutterProject == null) {
       return const <CustomDimensions, String>{};
     }
     try {
       final Environment localEnvironment = createEnvironment();
       return <CustomDimensions, String>{
         CustomDimensions.commandBuildBundleTargetPlatform: localEnvironment.defines['TargetPlatform'],
-        CustomDimensions.commandBuildBundleIsModule: '${futterProject.isModule}',
+        CustomDimensions.commandBuildBundleIsModule: '${flutterProject.isModule}',
       };
     } on Exception {
       // We've failed to send usage.
@@ -204,9 +204,11 @@ class AssembleCommand extends FlutterCommand {
     if (argResults.wasParsed(kExtraGenSnapshotOptions)) {
       results[kExtraGenSnapshotOptions] = argResults[kExtraGenSnapshotOptions] as String;
     }
-    // Workaround for dart-define formatting
     if (argResults.wasParsed(kDartDefines)) {
       results[kDartDefines] = argResults[kDartDefines] as String;
+    }
+    if (argResults.wasParsed(kExtraFrontEndOptions)) {
+      results[kExtraFrontEndOptions] = argResults[kExtraFrontEndOptions] as String;
     }
     return results;
   }
@@ -226,13 +228,13 @@ class AssembleCommand extends FlutterCommand {
       );
     if (!result.success) {
       for (final ExceptionMeasurement measurement in result.exceptions.values) {
-        globals.printError('Target ${measurement.target} failed: ${measurement.exception}',
-          stackTrace: measurement.fatal
-            ? measurement.stackTrace
-            : null,
-        );
+        if (measurement.fatal || globals.logger.isVerbose) {
+          globals.printError('Target ${measurement.target} failed: ${measurement.exception}',
+            stackTrace: measurement.stackTrace
+          );
+        }
       }
-      throwToolExit('build failed.');
+      throwToolExit('');
     }
     globals.printTrace('build succeeded.');
     if (argResults.wasParsed('build-inputs')) {
@@ -283,7 +285,7 @@ void writePerformanceData(Iterable<PerformanceMeasurement> measurements, File ou
     'targets': <Object>[
       for (final PerformanceMeasurement measurement in measurements)
         <String, Object>{
-          'name': measurement.analyicsName,
+          'name': measurement.analyticsName,
           'skipped': measurement.skipped,
           'succeeded': measurement.succeeded,
           'elapsedMilliseconds': measurement.elapsedMilliseconds,

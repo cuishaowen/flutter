@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @dart = 2.8
+
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -13,7 +15,7 @@ import 'package:flutter/painting.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../painting/image_data.dart';
+import '../image_data.dart';
 import '../rendering/mock_canvas.dart';
 
 class TestImageProvider extends ImageProvider<TestImageProvider> {
