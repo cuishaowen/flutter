@@ -89,8 +89,8 @@ abstract class InheritedTheme extends InheritedWidget {
   /// const constructors so that they can be used in const expressions.
 
   const InheritedTheme({
-    Key key,
-    @required Widget child,
+    Key? key,
+    required Widget child,
   }) : super(key: key, child: child);
 
   /// Return a copy of this inherited theme with the specified [child].
@@ -121,7 +121,7 @@ abstract class InheritedTheme extends InheritedWidget {
         final Type themeType = theme.runtimeType;
         // Only remember the first theme of any type. This assumes
         // that inherited themes completely shadow ancestors of the
-        // the same type.
+        // same type.
         if (!themeTypes.contains(themeType)) {
           themeTypes.add(themeType);
           themes.add(theme);
@@ -136,9 +136,9 @@ abstract class InheritedTheme extends InheritedWidget {
 
 class _CaptureAll extends StatelessWidget {
   const _CaptureAll({
-    Key key,
-    @required this.themes,
-    @required this.child,
+    Key? key,
+    required this.themes,
+    required this.child,
   }) : assert(themes != null), assert(child != null), super(key: key);
 
   final List<InheritedTheme> themes;

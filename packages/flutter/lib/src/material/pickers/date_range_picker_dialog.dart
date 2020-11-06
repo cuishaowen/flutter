@@ -10,17 +10,15 @@ import 'package:flutter/widgets.dart';
 
 import '../app_bar.dart';
 import '../back_button.dart';
-import '../button_bar.dart';
-import '../button_theme.dart';
 import '../color_scheme.dart';
 import '../debug.dart';
 import '../dialog.dart';
 import '../dialog_theme.dart';
-import '../flat_button.dart';
 import '../icon_button.dart';
 import '../icons.dart';
 import '../material_localizations.dart';
 import '../scaffold.dart';
+import '../text_button.dart';
 import '../text_theme.dart';
 import '../theme.dart';
 
@@ -108,28 +106,28 @@ const double _inputFormLandscapeHeight = 108.0;
 ///  * [DateTimeRange], which is used to describe a date range.
 ///
 Future<DateTimeRange> showDateRangePicker({
-  @required BuildContext context,
-  DateTimeRange initialDateRange,
-  @required DateTime firstDate,
-  @required DateTime lastDate,
-  DateTime currentDate,
+  required BuildContext context,
+  DateTimeRange? initialDateRange,
+  required DateTime firstDate,
+  required DateTime lastDate,
+  DateTime? currentDate,
   DatePickerEntryMode initialEntryMode = DatePickerEntryMode.calendar,
-  String helpText,
-  String cancelText,
-  String confirmText,
-  String saveText,
-  String errorFormatText,
-  String errorInvalidText,
-  String errorInvalidRangeText,
-  String fieldStartHintText,
-  String fieldEndHintText,
-  String fieldStartLabelText,
-  String fieldEndLabelText,
-  Locale locale,
+  String? helpText,
+  String? cancelText,
+  String? confirmText,
+  String? saveText,
+  String? errorFormatText,
+  String? errorInvalidText,
+  String? errorInvalidRangeText,
+  String? fieldStartHintText,
+  String? fieldEndHintText,
+  String? fieldStartLabelText,
+  String? fieldEndLabelText,
+  Locale? locale,
   bool useRootNavigator = true,
-  RouteSettings routeSettings,
-  TextDirection textDirection,
-  TransitionBuilder builder,
+  RouteSettings? routeSettings,
+  TextDirection? textDirection,
+  TransitionBuilder? builder,
 }) async {
     assert(context != null);
     assert(
@@ -217,10 +215,10 @@ Future<DateTimeRange> showDateRangePicker({
 
 class _DateRangePickerDialog extends StatefulWidget {
   const _DateRangePickerDialog({
-    Key key,
+    Key? key,
     this.initialDateRange,
-    @required this.firstDate,
-    @required this.lastDate,
+    required this.firstDate,
+    required this.lastDate,
     this.currentDate,
     this.initialEntryMode = DatePickerEntryMode.calendar,
     this.helpText,
@@ -236,32 +234,32 @@ class _DateRangePickerDialog extends StatefulWidget {
     this.fieldEndLabelText,
   }) : super(key: key);
 
-  final DateTimeRange initialDateRange;
+  final DateTimeRange? initialDateRange;
   final DateTime firstDate;
   final DateTime lastDate;
-  final DateTime currentDate;
+  final DateTime? currentDate;
   final DatePickerEntryMode initialEntryMode;
-  final String cancelText;
-  final String confirmText;
-  final String saveText;
-  final String helpText;
-  final String errorInvalidRangeText;
-  final String errorFormatText;
-  final String errorInvalidText;
-  final String fieldStartHintText;
-  final String fieldEndHintText;
-  final String fieldStartLabelText;
-  final String fieldEndLabelText;
+  final String? cancelText;
+  final String? confirmText;
+  final String? saveText;
+  final String? helpText;
+  final String? errorInvalidRangeText;
+  final String? errorFormatText;
+  final String? errorInvalidText;
+  final String? fieldStartHintText;
+  final String? fieldEndHintText;
+  final String? fieldStartLabelText;
+  final String? fieldEndLabelText;
 
   @override
   _DateRangePickerDialogState createState() => _DateRangePickerDialogState();
 }
 
 class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
-  DatePickerEntryMode _entryMode;
-  DateTime _selectedStart;
-  DateTime _selectedEnd;
-  bool _autoValidate;
+  late DatePickerEntryMode _entryMode;
+  DateTime? _selectedStart;
+  DateTime? _selectedEnd;
+  late bool _autoValidate;
   final GlobalKey _calendarPickerKey = GlobalKey();
   final GlobalKey<InputDateRangePickerState> _inputPickerKey = GlobalKey<InputDateRangePickerState>();
 
@@ -276,7 +274,7 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
 
   void _handleOk() {
     if (_entryMode == DatePickerEntryMode.input) {
-      final InputDateRangePickerState picker = _inputPickerKey.currentState;
+      final InputDateRangePickerState picker = _inputPickerKey.currentState!;
       if (!picker.validate()) {
         setState(() {
           _autoValidate = true;
@@ -284,8 +282,8 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
         return;
       }
     }
-    final DateTimeRange selectedRange = _hasSelectedDateRange
-      ? DateTimeRange(start: _selectedStart, end: _selectedEnd)
+    final DateTimeRange? selectedRange = _hasSelectedDateRange
+      ? DateTimeRange(start: _selectedStart!, end: _selectedEnd!)
       : null;
 
     Navigator.pop(context, selectedRange);
@@ -304,8 +302,19 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
           break;
 
         case DatePickerEntryMode.input:
+          // Validate the range dates
+          if (_selectedStart != null &&
+              (_selectedStart!.isBefore(widget.firstDate) || _selectedStart!.isAfter(widget.lastDate))) {
+            _selectedStart = null;
+            // With no valid start date, having an end date makes no sense for the UI.
+            _selectedEnd = null;
+          }
+          if (_selectedEnd != null &&
+              (_selectedEnd!.isBefore(widget.firstDate) || _selectedEnd!.isAfter(widget.lastDate))) {
+            _selectedEnd = null;
+          }
           // If invalid range (start after end), then just use the start date
-          if (_selectedStart != null && _selectedEnd != null && _selectedStart.isAfter(_selectedEnd)) {
+          if (_selectedStart != null && _selectedEnd != null && _selectedStart!.isAfter(_selectedEnd!)) {
             _selectedEnd = null;
           }
           _entryMode = DatePickerEntryMode.calendar;
@@ -314,11 +323,11 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
     });
   }
 
-  void _handleStartDateChanged(DateTime date) {
+  void _handleStartDateChanged(DateTime? date) {
     setState(() => _selectedStart = date);
   }
 
-  void _handleEndDateChanged(DateTime date) {
+  void _handleEndDateChanged(DateTime? date) {
     setState(() => _selectedEnd = date);
   }
 
@@ -326,16 +335,16 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final MediaQueryData mediaQuery = MediaQuery.of(context);
+    final MediaQueryData mediaQuery = MediaQuery.of(context)!;
     final Orientation orientation = mediaQuery.orientation;
     final double textScaleFactor = math.min(mediaQuery.textScaleFactor, 1.3);
-    final MaterialLocalizations localizations = MaterialLocalizations.of(context);
+    final MaterialLocalizations localizations = MaterialLocalizations.of(context)!;
 
-    Widget contents;
-    Size size;
-    ShapeBorder shape;
-    double elevation;
-    EdgeInsets insetPadding;
+    final Widget contents;
+    final Size size;
+    ShapeBorder? shape;
+    final double elevation;
+    final EdgeInsets insetPadding;
     switch (_entryMode) {
       case DatePickerEntryMode.calendar:
         contents = _CalendarRangePickerDialog(
@@ -404,13 +413,10 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
           cancelText: widget.cancelText ?? localizations.cancelButtonLabel,
           helpText: widget.helpText ?? localizations.dateRangePickerHelpText,
         );
-        final DialogTheme dialogTheme = Theme.of(context).dialogTheme;
+        final DialogTheme dialogTheme = Theme.of(context)!.dialogTheme;
         size = orientation == Orientation.portrait ? _inputPortraitDialogSize : _inputLandscapeDialogSize;
         insetPadding = const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0);
-        // TODO(Piinks): remove once border radius migration is complete
-        shape = dialogTheme.shape ?? const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(4.0))
-        );
+        shape = dialogTheme.shape;
         elevation = dialogTheme.elevation ?? 24;
         break;
     }
@@ -422,7 +428,7 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
         duration: _dialogSizeAnimationDuration,
         curve: Curves.easeIn,
         child: MediaQuery(
-          data: MediaQuery.of(context).copyWith(
+          data: MediaQuery.of(context)!.copyWith(
             textScaleFactor: textScaleFactor,
           ),
           child: Builder(builder: (BuildContext context) {
@@ -440,40 +446,40 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
 
 class _CalendarRangePickerDialog extends StatelessWidget {
   const _CalendarRangePickerDialog({
-    Key key,
-    @required this.selectedStartDate,
-    @required this.selectedEndDate,
-    @required this.firstDate,
-    @required this.lastDate,
-    @required this.currentDate,
-    @required this.onStartDateChanged,
-    @required this.onEndDateChanged,
-    @required this.onConfirm,
-    @required this.onCancel,
-    @required this.onToggleEntryMode,
-    @required this.confirmText,
-    @required this.helpText,
+    Key? key,
+    required this.selectedStartDate,
+    required this.selectedEndDate,
+    required this.firstDate,
+    required this.lastDate,
+    required this.currentDate,
+    required this.onStartDateChanged,
+    required this.onEndDateChanged,
+    required this.onConfirm,
+    required this.onCancel,
+    required this.onToggleEntryMode,
+    required this.confirmText,
+    required this.helpText,
   }) : super(key: key);
 
-  final DateTime selectedStartDate;
-  final DateTime selectedEndDate;
+  final DateTime? selectedStartDate;
+  final DateTime? selectedEndDate;
   final DateTime firstDate;
   final DateTime lastDate;
-  final DateTime currentDate;
+  final DateTime? currentDate;
   final ValueChanged<DateTime> onStartDateChanged;
-  final ValueChanged<DateTime> onEndDateChanged;
-  final VoidCallback onConfirm;
-  final VoidCallback onCancel;
-  final VoidCallback onToggleEntryMode;
+  final ValueChanged<DateTime?> onEndDateChanged;
+  final VoidCallback? onConfirm;
+  final VoidCallback? onCancel;
+  final VoidCallback? onToggleEntryMode;
   final String confirmText;
   final String helpText;
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+    final ThemeData theme = Theme.of(context)!;
     final ColorScheme colorScheme = theme.colorScheme;
-    final MaterialLocalizations localizations = MaterialLocalizations.of(context);
-    final Orientation orientation = MediaQuery.of(context).orientation;
+    final MaterialLocalizations localizations = MaterialLocalizations.of(context)!;
+    final Orientation orientation = MediaQuery.of(context)!.orientation;
     final TextTheme textTheme = theme.textTheme;
     final Color headerForeground = colorScheme.brightness == Brightness.light
       ? colorScheme.onPrimary
@@ -481,14 +487,14 @@ class _CalendarRangePickerDialog extends StatelessWidget {
     final Color headerDisabledForeground = headerForeground.withOpacity(0.38);
     final String startDateText = utils.formatRangeStartDate(localizations, selectedStartDate, selectedEndDate);
     final String endDateText = utils.formatRangeEndDate(localizations, selectedStartDate, selectedEndDate, DateTime.now());
-    final TextStyle headlineStyle = textTheme.headline5;
-    final TextStyle startDateStyle = headlineStyle?.apply(
+    final TextStyle? headlineStyle = textTheme.headline5;
+    final TextStyle? startDateStyle = headlineStyle?.apply(
       color: selectedStartDate != null ? headerForeground : headerDisabledForeground
     );
-    final TextStyle endDateStyle = headlineStyle?.apply(
+    final TextStyle? endDateStyle = headlineStyle?.apply(
       color: selectedEndDate != null ? headerForeground : headerDisabledForeground
     );
-    final TextStyle saveButtonStyle = textTheme.button.apply(
+    final TextStyle saveButtonStyle = textTheme.button!.apply(
       color: onConfirm != null ? headerForeground : headerDisabledForeground
     );
 
@@ -511,18 +517,15 @@ class _CalendarRangePickerDialog extends StatelessWidget {
           ),
           actions: <Widget>[
             if (orientation == Orientation.landscape) entryModeIcon,
-            ButtonTheme(
-              minWidth: 64,
-              child: FlatButton(
-                onPressed: onConfirm,
-                child: Text(confirmText, style: saveButtonStyle),
-              ),
+            TextButton(
+              onPressed: onConfirm,
+              child: Text(confirmText, style: saveButtonStyle),
             ),
             const SizedBox(width: 8),
           ],
           bottom: PreferredSize(
             child: Row(children: <Widget>[
-              SizedBox(width: MediaQuery.of(context).size.width < 360 ? 42 : 72),
+              SizedBox(width: MediaQuery.of(context)!.size.width < 360 ? 42 : 72),
               Expanded(
                 child: Semantics(
                   label: '$helpText $startDateText to $endDateText',
@@ -532,7 +535,7 @@ class _CalendarRangePickerDialog extends StatelessWidget {
                     children: <Widget>[
                       Text(
                         helpText,
-                        style: textTheme.overline.apply(
+                        style: textTheme.overline!.apply(
                           color: headerForeground,
                         ),
                       ),
@@ -587,32 +590,32 @@ class _CalendarRangePickerDialog extends StatelessWidget {
 
 class _InputDateRangePickerDialog extends StatelessWidget {
   const _InputDateRangePickerDialog({
-    Key key,
-    @required this.selectedStartDate,
-    @required this.selectedEndDate,
-    @required this.currentDate,
-    @required this.picker,
-    @required this.onConfirm,
-    @required this.onCancel,
-    @required this.onToggleEntryMode,
-    @required this.confirmText,
-    @required this.cancelText,
-    @required this.helpText,
+    Key? key,
+    required this.selectedStartDate,
+    required this.selectedEndDate,
+    required this.currentDate,
+    required this.picker,
+    required this.onConfirm,
+    required this.onCancel,
+    required this.onToggleEntryMode,
+    required this.confirmText,
+    required this.cancelText,
+    required this.helpText,
   }) : super(key: key);
 
-  final DateTime selectedStartDate;
-  final DateTime selectedEndDate;
-  final DateTime currentDate;
+  final DateTime? selectedStartDate;
+  final DateTime? selectedEndDate;
+  final DateTime? currentDate;
   final Widget picker;
   final VoidCallback onConfirm;
   final VoidCallback onCancel;
   final VoidCallback onToggleEntryMode;
-  final String confirmText;
-  final String cancelText;
-  final String helpText;
+  final String? confirmText;
+  final String? cancelText;
+  final String? helpText;
 
-  String _formatDateRange(BuildContext context, DateTime start, DateTime end, DateTime now) {
-    final MaterialLocalizations localizations = MaterialLocalizations.of(context);
+  String _formatDateRange(BuildContext context, DateTime? start, DateTime? end, DateTime now) {
+    final MaterialLocalizations localizations = MaterialLocalizations.of(context)!;
     final String startText = utils.formatRangeStartDate(localizations, start, end);
     final String endText = utils.formatRangeEndDate(localizations, start, end, now);
     if (start == null || end == null) {
@@ -627,21 +630,21 @@ class _InputDateRangePickerDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+    final ThemeData theme = Theme.of(context)!;
     final ColorScheme colorScheme = theme.colorScheme;
-    final MaterialLocalizations localizations = MaterialLocalizations.of(context);
-    final Orientation orientation = MediaQuery.of(context).orientation;
+    final MaterialLocalizations localizations = MaterialLocalizations.of(context)!;
+    final Orientation orientation = MediaQuery.of(context)!.orientation;
     final TextTheme textTheme = theme.textTheme;
 
     final Color dateColor = colorScheme.brightness == Brightness.light
       ? colorScheme.onPrimary
       : colorScheme.onSurface;
-    final TextStyle dateStyle = orientation == Orientation.landscape
+    final TextStyle? dateStyle = orientation == Orientation.landscape
       ? textTheme.headline5?.apply(color: dateColor)
       : textTheme.headline4?.apply(color: dateColor);
-    final String dateText = _formatDateRange(context, selectedStartDate, selectedEndDate, currentDate);
+    final String dateText = _formatDateRange(context, selectedStartDate, selectedEndDate, currentDate!);
     final String semanticDateText = selectedStartDate != null && selectedEndDate != null
-      ? '${localizations.formatMediumDate(selectedStartDate)} – ${localizations.formatMediumDate(selectedEndDate)}'
+      ? '${localizations.formatMediumDate(selectedStartDate!)} – ${localizations.formatMediumDate(selectedEndDate!)}'
       : '';
 
     final Widget header = DatePickerHeader(
@@ -656,19 +659,23 @@ class _InputDateRangePickerDialog extends StatelessWidget {
       onIconPressed: onToggleEntryMode,
     );
 
-    final Widget actions = ButtonBar(
-      buttonTextTheme: ButtonTextTheme.primary,
-      layoutBehavior: ButtonBarLayoutBehavior.constrained,
-      children: <Widget>[
-        FlatButton(
-          child: Text(cancelText ?? localizations.cancelButtonLabel),
-          onPressed: onCancel,
-        ),
-        FlatButton(
-          child: Text(confirmText ?? localizations.okButtonLabel),
-          onPressed: onConfirm,
-        ),
-      ],
+    final Widget actions = Container(
+      alignment: AlignmentDirectional.centerEnd,
+      constraints: const BoxConstraints(minHeight: 52.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: OverflowBar(
+        spacing: 8,
+        children: <Widget>[
+          TextButton(
+            child: Text(cancelText ?? localizations.cancelButtonLabel),
+            onPressed: onCancel,
+          ),
+          TextButton(
+            child: Text(confirmText ?? localizations.okButtonLabel),
+            onPressed: onConfirm,
+          ),
+        ],
+      ),
     );
 
     switch (orientation) {
@@ -702,6 +709,5 @@ class _InputDateRangePickerDialog extends StatelessWidget {
           ],
         );
     }
-    return null;
   }
 }

@@ -95,7 +95,6 @@ class MediaQueryData {
     this.viewInsets = EdgeInsets.zero,
     this.systemGestureInsets = EdgeInsets.zero,
     this.viewPadding = EdgeInsets.zero,
-    this.physicalDepth = double.maxFinite,
     this.alwaysUse24HourFormat = false,
     this.accessibleNavigation = false,
     this.invertColors = false,
@@ -111,7 +110,6 @@ class MediaQueryData {
        assert(viewInsets != null),
        assert(systemGestureInsets != null),
        assert(viewPadding != null),
-       assert(physicalDepth != null),
        assert(alwaysUse24HourFormat != null),
        assert(accessibleNavigation != null),
        assert(invertColors != null),
@@ -135,7 +133,6 @@ class MediaQueryData {
       viewPadding = EdgeInsets.fromWindowPadding(window.viewPadding, window.devicePixelRatio),
       viewInsets = EdgeInsets.fromWindowPadding(window.viewInsets, window.devicePixelRatio),
       systemGestureInsets = EdgeInsets.fromWindowPadding(window.systemGestureInsets, window.devicePixelRatio),
-      physicalDepth = window.physicalDepth,
       accessibleNavigation = window.accessibilityFeatures.accessibleNavigation,
       invertColors = window.accessibilityFeatures.invertColors,
       disableAnimations = window.accessibilityFeatures.disableAnimations,
@@ -254,7 +251,7 @@ class MediaQueryData {
   /// {@tool dartpad --template=stateful_widget_material}
   ///
   /// For apps that might be deployed on Android Q devices with full gesture
-  /// navigation enabled, use [MediaQuery.systemGestureInsets] with [Padding]
+  /// navigation enabled, use [systemGestureInsets] with [Padding]
   /// to avoid having the left and right edges of the [Slider] from appearing
   /// within the area reserved for system gesture navigation.
   ///
@@ -289,19 +286,6 @@ class MediaQueryData {
   /// {@end-tool}
   final EdgeInsets systemGestureInsets;
 
-  /// The physical depth is the maximum elevation that the Window allows.
-  ///
-  /// Physical layers drawn at or above this elevation will have their elevation
-  /// clamped to this value. This can happen if the physical layer itself has
-  /// an elevation larger than the available depth, or if some ancestor of the
-  /// layer causes it to have a cumulative elevation that is larger than the
-  /// available depth.
-  ///
-  /// The default value is [double.maxFinite], which is used for platforms that
-  /// do not specify a maximum elevation. This property is currently only
-  /// expected to be set to a non-default value on Fuchsia.
-  final double physicalDepth;
-
   /// Whether to use 24-hour format when formatting time.
   ///
   /// The behavior of this flag is different across platforms:
@@ -323,7 +307,7 @@ class MediaQueryData {
   ///
   /// See also:
   ///
-  ///  * [Window.AccessibilityFeatures], where the setting originates.
+  ///  * [Window.accessibilityFeatures], where the setting originates.
   final bool accessibleNavigation;
 
   /// Whether the device is inverting the colors of the platform.
@@ -332,7 +316,7 @@ class MediaQueryData {
   ///
   /// See also:
   ///
-  ///  * [Window.AccessibilityFeatures], where the setting originates.
+  ///  * [Window.accessibilityFeatures], where the setting originates.
   final bool invertColors;
 
   /// Whether the user requested a high contrast between foreground and background
@@ -347,7 +331,7 @@ class MediaQueryData {
   ///
   /// See also:
   ///
-  ///  * [Window.AccessibilityFeatures], where the setting originates.
+  ///  * [Window.accessibilityFeatures], where the setting originates.
   final bool disableAnimations;
 
   /// Whether the platform is requesting that text be drawn with a bold font
@@ -355,7 +339,7 @@ class MediaQueryData {
   ///
   /// See also:
   ///
-  ///  * [Window.AccessibilityFeatures], where the setting originates.
+  ///  * [Window.accessibilityFeatures], where the setting originates.
   final bool boldText;
 
   /// Describes the navigation mode requested by the platform.
@@ -384,22 +368,21 @@ class MediaQueryData {
   /// Creates a copy of this media query data but with the given fields replaced
   /// with the new values.
   MediaQueryData copyWith({
-    Size size,
-    double devicePixelRatio,
-    double textScaleFactor,
-    Brightness platformBrightness,
-    EdgeInsets padding,
-    EdgeInsets viewPadding,
-    EdgeInsets viewInsets,
-    EdgeInsets systemGestureInsets,
-    double physicalDepth,
-    bool alwaysUse24HourFormat,
-    bool highContrast,
-    bool disableAnimations,
-    bool invertColors,
-    bool accessibleNavigation,
-    bool boldText,
-    NavigationMode navigationMode,
+    Size? size,
+    double? devicePixelRatio,
+    double? textScaleFactor,
+    Brightness? platformBrightness,
+    EdgeInsets? padding,
+    EdgeInsets? viewPadding,
+    EdgeInsets? viewInsets,
+    EdgeInsets? systemGestureInsets,
+    bool? alwaysUse24HourFormat,
+    bool? highContrast,
+    bool? disableAnimations,
+    bool? invertColors,
+    bool? accessibleNavigation,
+    bool? boldText,
+    NavigationMode? navigationMode,
   }) {
     return MediaQueryData(
       size: size ?? this.size,
@@ -410,7 +393,6 @@ class MediaQueryData {
       viewPadding: viewPadding ?? this.viewPadding,
       viewInsets: viewInsets ?? this.viewInsets,
       systemGestureInsets: systemGestureInsets ?? this.systemGestureInsets,
-      physicalDepth: physicalDepth ?? this.physicalDepth,
       alwaysUse24HourFormat: alwaysUse24HourFormat ?? this.alwaysUse24HourFormat,
       invertColors: invertColors ?? this.invertColors,
       highContrast: highContrast ?? this.highContrast,
@@ -579,7 +561,6 @@ class MediaQueryData {
         && other.padding == padding
         && other.viewPadding == viewPadding
         && other.viewInsets == viewInsets
-        && other.physicalDepth == physicalDepth
         && other.alwaysUse24HourFormat == alwaysUse24HourFormat
         && other.highContrast == highContrast
         && other.disableAnimations == disableAnimations
@@ -599,7 +580,6 @@ class MediaQueryData {
       padding,
       viewPadding,
       viewInsets,
-      physicalDepth,
       alwaysUse24HourFormat,
       highContrast,
       disableAnimations,
@@ -620,7 +600,6 @@ class MediaQueryData {
       'padding: $padding',
       'viewPadding: $viewPadding',
       'viewInsets: $viewInsets',
-      'physicalDepth: $physicalDepth',
       'alwaysUse24HourFormat: $alwaysUse24HourFormat',
       'accessibleNavigation: $accessibleNavigation',
       'highContrast: $highContrast',
@@ -660,9 +639,9 @@ class MediaQuery extends InheritedWidget {
   ///
   /// The [data] and [child] arguments must not be null.
   const MediaQuery({
-    Key key,
-    @required this.data,
-    @required Widget child,
+    Key? key,
+    required this.data,
+    required Widget child,
   }) : assert(child != null),
        assert(data != null),
        super(key: key, child: child);
@@ -694,17 +673,17 @@ class MediaQuery extends InheritedWidget {
   ///  * [removeViewPadding], the same thing but for
   ///    [MediaQueryData.viewPadding].
   factory MediaQuery.removePadding({
-    Key key,
-    @required BuildContext context,
+    Key? key,
+    required BuildContext context,
     bool removeLeft = false,
     bool removeTop = false,
     bool removeRight = false,
     bool removeBottom = false,
-    @required Widget child,
+    required Widget child,
   }) {
     return MediaQuery(
       key: key,
-      data: MediaQuery.of(context).removePadding(
+      data: MediaQuery.of(context)!.removePadding(
         removeLeft: removeLeft,
         removeTop: removeTop,
         removeRight: removeRight,
@@ -739,17 +718,17 @@ class MediaQuery extends InheritedWidget {
   ///  * [removeViewPadding], the same thing but for
   ///    [MediaQueryData.viewPadding].
   factory MediaQuery.removeViewInsets({
-    Key key,
-    @required BuildContext context,
+    Key? key,
+    required BuildContext context,
     bool removeLeft = false,
     bool removeTop = false,
     bool removeRight = false,
     bool removeBottom = false,
-    @required Widget child,
+    required Widget child,
   }) {
     return MediaQuery(
       key: key,
-      data: MediaQuery.of(context).removeViewInsets(
+      data: MediaQuery.of(context)!.removeViewInsets(
         removeLeft: removeLeft,
         removeTop: removeTop,
         removeRight: removeRight,
@@ -783,17 +762,17 @@ class MediaQuery extends InheritedWidget {
   ///  * [removePadding], the same thing but for [MediaQueryData.padding].
   ///  * [removeViewInsets], the same thing but for [MediaQueryData.viewInsets].
   factory MediaQuery.removeViewPadding({
-    Key key,
-    @required BuildContext context,
+    Key? key,
+    required BuildContext context,
     bool removeLeft = false,
     bool removeTop = false,
     bool removeRight = false,
     bool removeBottom = false,
-    @required Widget child,
+    required Widget child,
   }) {
     return MediaQuery(
       key: key,
-      data: MediaQuery.of(context).removeViewPadding(
+      data: MediaQuery.of(context)!.removeViewPadding(
         removeLeft: removeLeft,
         removeTop: removeTop,
         removeRight: removeRight,
@@ -827,10 +806,10 @@ class MediaQuery extends InheritedWidget {
   ///
   /// If you use this from a widget (e.g. in its build function), consider
   /// calling [debugCheckHasMediaQuery].
-  static MediaQueryData of(BuildContext context, { bool nullOk = false }) {
+  static MediaQueryData? of(BuildContext context, { bool nullOk = false }) {
     assert(context != null);
     assert(nullOk != null);
-    final MediaQuery query = context.dependOnInheritedWidgetOfExactType<MediaQuery>();
+    final MediaQuery? query = context.dependOnInheritedWidgetOfExactType<MediaQuery>();
     if (query != null)
       return query.data;
     if (nullOk)
@@ -862,6 +841,17 @@ class MediaQuery extends InheritedWidget {
     return MediaQuery.of(context, nullOk: true)?.platformBrightness ?? Brightness.light;
   }
 
+  /// Returns highContrast for the nearest MediaQuery ancestor or false, if no
+  /// such ancestor exists.
+  ///
+  /// See also:
+  ///
+  ///  * [MediaQueryData.highContrast], which indicates the platform's
+  ///    desire to increase contrast.
+  static bool highContrastOf(BuildContext context) {
+    return MediaQuery.of(context, nullOk: true)?.highContrast ?? false;
+  }
+
   /// Returns the boldText accessibility setting for the nearest MediaQuery
   /// ancestor, or false if no such ancestor exists.
   static bool boldTextOverride(BuildContext context) {
@@ -878,7 +868,7 @@ class MediaQuery extends InheritedWidget {
   }
 }
 
-/// Describes the navigation mode to be set by a [MediaQuery] widget
+/// Describes the navigation mode to be set by a [MediaQuery] widget.
 ///
 /// The different modes indicate the type of navigation to be used in a widget
 /// subtree for those widgets sensitive to it.

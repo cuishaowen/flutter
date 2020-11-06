@@ -53,7 +53,7 @@ typedef RebuildDirtyWidgetCallback = void Function(Element e, bool builtOnce);
 ///    rebuilds occurred when the
 ///    `ext.flutter.inspector.trackRebuildDirtyWidgets` service extension is
 ///    enabled.
-RebuildDirtyWidgetCallback debugOnRebuildDirtyWidget;
+RebuildDirtyWidgetCallback? debugOnRebuildDirtyWidget;
 
 /// Log all calls to [BuildOwner.buildScope].
 ///
@@ -98,21 +98,23 @@ bool debugPrintGlobalKeyedWidgetLifecycle = false;
 ///
 /// See also:
 ///
-///  * [debugProfilePaintsEnabled], which does something similar but for
-///    painting, and [debugPrintRebuildDirtyWidgets], which does something similar
-///    but reporting the builds to the console.
+///  * [debugPrintRebuildDirtyWidgets], which does something similar but
+///    reporting the builds to the console.
+///  * [debugProfileLayoutsEnabled], which does something similar for layout,
+///    and [debugPrintLayouts], its console equivalent.
+///  * [debugProfilePaintsEnabled], which does something similar for painting.
 bool debugProfileBuildsEnabled = false;
 
 /// Show banners for deprecated widgets.
 bool debugHighlightDeprecatedWidgets = false;
 
-Key _firstNonUniqueKey(Iterable<Widget> widgets) {
+Key? _firstNonUniqueKey(Iterable<Widget> widgets) {
   final Set<Key> keySet = HashSet<Key>();
   for (final Widget widget in widgets) {
     assert(widget != null);
     if (widget.key == null)
       continue;
-    if (!keySet.add(widget.key))
+    if (!keySet.add(widget.key!))
       return widget.key;
   }
   return null;
@@ -134,7 +136,7 @@ Key _firstNonUniqueKey(Iterable<Widget> widgets) {
 /// Does nothing if asserts are disabled. Always returns true.
 bool debugChildrenHaveDuplicateKeys(Widget parent, Iterable<Widget> children) {
   assert(() {
-    final Key nonUniqueKey = _firstNonUniqueKey(children);
+    final Key? nonUniqueKey = _firstNonUniqueKey(children);
     if (nonUniqueKey != null) {
       throw FlutterError(
         'Duplicate keys found.\n'
@@ -161,7 +163,7 @@ bool debugChildrenHaveDuplicateKeys(Widget parent, Iterable<Widget> children) {
 /// Does nothing if asserts are disabled. Always returns true.
 bool debugItemsHaveDuplicateKeys(Iterable<Widget> items) {
   assert(() {
-    final Key nonUniqueKey = _firstNonUniqueKey(items);
+    final Key? nonUniqueKey = _firstNonUniqueKey(items);
     if (nonUniqueKey != null)
       throw FlutterError('Duplicate key found: $nonUniqueKey.');
     return true;
@@ -240,13 +242,33 @@ bool debugCheckHasMediaQuery(BuildContext context) {
 /// assert(debugCheckHasDirectionality(context));
 /// ```
 ///
+/// To improve the error messages you can add some extra color using the
+/// named arguments.
+///
+///  * why: explain why the direction is needed, for example "to resolve
+///    the 'alignment' argument". Should be an adverb phrase describing why.
+///  * hint: explain why this might be happening, for example "The default
+///    value of the 'aligment' argument of the $runtimeType widget is an
+///    AlignmentDirectional value.". Should be a fully punctuated sentence.
+///  * alternative: provide additional advice specific to the situation,
+///    especially an alternative to providing a Directionality ancestor.
+///    For example, "Alternatively, consider specifying the 'textDirection'
+///    argument.". Should be a fully punctuated sentence.
+///
+/// Each one can be null, in which case it is skipped (this is the default).
+/// If they are non-null, they are included in the order above, interspersed
+/// with the more generic advice regarding [Directionality].
+///
 /// Does nothing if asserts are disabled. Always returns true.
-bool debugCheckHasDirectionality(BuildContext context) {
+bool debugCheckHasDirectionality(BuildContext context, { String? why, String? hint, String? alternative }) {
   assert(() {
     if (context.widget is! Directionality && context.findAncestorWidgetOfExactType<Directionality>() == null) {
+      why = why == null ? '' : ' $why';
       throw FlutterError.fromParts(<DiagnosticsNode>[
         ErrorSummary('No Directionality widget found.'),
-        ErrorDescription('${context.widget.runtimeType} widgets require a Directionality widget ancestor.\n'),
+        ErrorDescription('${context.widget.runtimeType} widgets require a Directionality widget ancestor$why.\n'),
+        if (hint != null)
+          ErrorHint(hint),
         context.describeWidget('The specific widget that could not find a Directionality ancestor was'),
         context.describeOwnershipChain('The ownership chain for the affected widget is'),
         ErrorHint(
@@ -257,6 +279,8 @@ bool debugCheckHasDirectionality(BuildContext context) {
           'values, and to resolve EdgeInsetsDirectional, '
           'AlignmentDirectional, and other *Directional objects.'
         ),
+        if (alternative != null)
+          ErrorHint(alternative),
       ]);
     }
     return true;
@@ -270,7 +294,7 @@ bool debugCheckHasDirectionality(BuildContext context) {
 /// function returned a non-null value, as typically required.
 ///
 /// Does nothing when asserts are disabled.
-void debugWidgetBuilderValue(Widget widget, Widget built) {
+void debugWidgetBuilderValue(Widget widget, Widget? built) {
   assert(() {
     if (built == null) {
       throw FlutterError.fromParts(<DiagnosticsNode>[

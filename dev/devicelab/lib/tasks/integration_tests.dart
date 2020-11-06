@@ -2,12 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
-import 'dart:io';
-
-import 'package:path/path.dart' as path;
 import '../framework/adb.dart';
 import '../framework/framework.dart';
+import '../framework/task_result.dart';
 import '../framework/utils.dart';
 
 TaskFunction createChannelsIntegrationTest() {
@@ -60,6 +57,13 @@ TaskFunction createEmbeddedAndroidViewsIntegrationTest() {
   );
 }
 
+TaskFunction createHybridAndroidViewsIntegrationTest() {
+  return DriverTest(
+    '${flutterDirectory.path}/dev/integration_tests/hybrid_android_views',
+    'lib/main.dart',
+  );
+}
+
 TaskFunction createAndroidSemanticsIntegrationTest() {
   return DriverTest(
     '${flutterDirectory.path}/dev/integration_tests/android_semantics_testing',
@@ -79,22 +83,6 @@ TaskFunction createImageLoadingIntegrationTest() {
     '${flutterDirectory.path}/dev/integration_tests/image_loading',
     'lib/main.dart',
   );
-}
-
-TaskFunction createFlutterCreateOfflineTest() {
-  return () async {
-    final Directory tempDir = Directory.systemTemp.createTempSync('flutter_create_test.');
-    String output;
-    await inDirectory(tempDir, () async {
-      output = await eval(path.join(flutterDirectory.path, 'bin', 'flutter'), <String>['create', '--offline', 'flutter_create_test']);
-    });
-    if (output.contains(RegExp('building flutter tool', caseSensitive: false))) {
-      return TaskResult.failure('`flutter create --offline` should not rebuild flutter tool');
-    } else if (!output.contains('All done!')) {
-      return TaskResult.failure('`flutter create` failed');
-    }
-    return TaskResult.success(null);
-  };
 }
 
 TaskFunction createAndroidSplashScreenKitchenSinkTest() {
